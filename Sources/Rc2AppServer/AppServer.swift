@@ -1,0 +1,62 @@
+//
+//  AppServer.swift
+//
+//  Copyright ©2017 Mark Lilback. This file is licensed under the ISC license.
+//
+
+import Foundation
+import PerfectLib
+import PerfectHTTP
+import PerfectHTTPServer
+import servermodel
+
+public let jsonType = "application/json"
+
+open class AppServer {
+	let server = HTTPServer()
+	var requestFilters = [(HTTPRequestFilter, HTTPFilterPriority)]()
+	var routes = [Route]()
+	private(set) var dao: Rc2DAO
+	private let authManager: AuthManager
+
+	/// creates a server with the authentication filter installed
+	public init() {
+		do {
+			dao = try Rc2DAO(host: "localhost", user: "rc2", database: "rc2")
+			authManager = AuthManager(dao: dao)
+		} catch {
+			print("failed to connect to database \(error)")
+			exit(1)
+		}
+		requestFilters.append((AuthRequestFilter(dao: dao.createTokenDAO()), .high))
+	}
+	
+	/// returns the default routes for the application
+	public func defaultRoutes() -> [Route] {
+		var defRoutes = [Route]()
+		defRoutes.append(contentsOf: authManager.authRoutes())
+		return defRoutes
+	}
+	
+	/// Starts the server. Adds any filters. If routes have been added, only adds those routes. If no routes were added, then adds defaultRoutes()
+	public func start() {
+		server.setRequestFilters(requestFilters)
+		// jump through this hoop to allow dependency injection of routes
+		var robj = Routes()
+		if routes.count > 0 {
+			robj.add(routes)
+		} else {
+			robj.add(defaultRoutes())
+		}
+		server.addRoutes(robj)
+		server.serverPort = 8181
+
+		do {
+			// Launch the HTTP server on port 8181
+			try server.start()
+		} catch PerfectError.networkError(let err, let msg) {
+			print("Network error thrown: \(err) \(msg)")
+		} catch {
+		}
+	}
+}

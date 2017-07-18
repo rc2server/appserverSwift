@@ -1,0 +1,142 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Bits",
+        "repositoryURL": "https://github.com/vapor/bits.git",
+        "state": {
+          "branch": null,
+          "revision": "389f1344cd5819e94c54ee18b35c2bc5589c7f05",
+          "version": "1.0.0"
+        }
+      },
+      {
+        "package": "COpenSSL",
+        "repositoryURL": "https://github.com/PerfectlySoft/Perfect-COpenSSL.git",
+        "state": {
+          "branch": null,
+          "revision": "a3eac4eef146acbca3f80d781d469072c87367a9",
+          "version": "2.0.4"
+        }
+      },
+      {
+        "package": "CPostgreSQL",
+        "repositoryURL": "https://github.com/vapor-community/cpostgresql.git",
+        "state": {
+          "branch": null,
+          "revision": "04794fa3b69d9f5f31f4511d803e265c5eaad4e0",
+          "version": "2.0.0"
+        }
+      },
+      {
+        "package": "Core",
+        "repositoryURL": "https://github.com/vapor/core.git",
+        "state": {
+          "branch": null,
+          "revision": "03af35140315ad2d5cbf6c197bcf4a64b9c5e24d",
+          "version": "2.0.2"
+        }
+      },
+      {
+        "package": "Debugging",
+        "repositoryURL": "https://github.com/vapor/debugging.git",
+        "state": {
+          "branch": null,
+          "revision": "bbd261de01c47f2e4d9acf4097807349330194ea",
+          "version": "1.0.0"
+        }
+      },
+      {
+        "package": "Freddy",
+        "repositoryURL": "https://github.com/bignerdranch/Freddy.git",
+        "state": {
+          "branch": null,
+          "revision": "1b09f84c0d954601b1a840801588e6f4942a8cb1",
+          "version": "3.0.2"
+        }
+      },
+      {
+        "package": "Node",
+        "repositoryURL": "https://github.com/vapor/node.git",
+        "state": {
+          "branch": null,
+          "revision": "26b0547ac4bd5ce8f7ba0217371bdee6c8f1c886",
+          "version": "2.0.3"
+        }
+      },
+      {
+        "package": "PerfectCrypto",
+        "repositoryURL": "https://github.com/PerfectlySoft/Perfect-Crypto.git",
+        "state": {
+          "branch": null,
+          "revision": "b202021b9ddf4eef3318597526fb07d4a86b4cfa",
+          "version": "1.0.9"
+        }
+      },
+      {
+        "package": "PerfectHTTP",
+        "repositoryURL": "https://github.com/PerfectlySoft/Perfect-HTTP.git",
+        "state": {
+          "branch": null,
+          "revision": "8577a063883d7e64b8bc3cebba8e3848556e9523",
+          "version": "2.2.3"
+        }
+      },
+      {
+        "package": "PerfectHTTPServer",
+        "repositoryURL": "https://github.com/PerfectlySoft/Perfect-HTTPServer.git",
+        "state": {
+          "branch": null,
+          "revision": "87873f3382f65fad82e9d74c8f965611c7e05eef",
+          "version": "2.2.15"
+        }
+      },
+      {
+        "package": "PerfectLib",
+        "repositoryURL": "https://github.com/PerfectlySoft/PerfectLib.git",
+        "state": {
+          "branch": null,
+          "revision": "e85a9ead840f80dfd85ca90627cf88cfb6e0cb59",
+          "version": "2.0.11"
+        }
+      },
+      {
+        "package": "PerfectNet",
+        "repositoryURL": "https://github.com/PerfectlySoft/Perfect-Net.git",
+        "state": {
+          "branch": null,
+          "revision": "20ddd455e70032b24e87a9171bb7ab47a748557b",
+          "version": "2.1.17"
+        }
+      },
+      {
+        "package": "PerfectThread",
+        "repositoryURL": "https://github.com/PerfectlySoft/Perfect-Thread.git",
+        "state": {
+          "branch": null,
+          "revision": "7d09e1830dd8e46b99c34a754a0bf4c2d567794e",
+          "version": "2.0.12"
+        }
+      },
+      {
+        "package": "PerfectWebSockets",
+        "repositoryURL": "https://github.com/PerfectlySoft/Perfect-WebSockets.git",
+        "state": {
+          "branch": null,
+          "revision": "7e5fdba934d5fcfa86b04ef261f2d82fbf7d0c4d",
+          "version": "2.0.1"
+        }
+      },
+      {
+        "package": "PostgreSQL",
+        "repositoryURL": "https://github.com/vapor/postgresql.git",
+        "state": {
+          "branch": null,
+          "revision": "5efa27f6dbf51434475de5a429d2eb7ea74eab11",
+          "version": "2.0.2"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
