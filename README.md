@@ -11,3 +11,9 @@
 </p>
 
 Latest version of AppServer written in Swift, deployable on Linux.
+
+## Build setup
+
+To generate an xcodeproj, use `swift package generate-xcodeproj --xcconfig-overrides Mac.xcconfig`. This will override the deployment target which swift hardcodes at 10.10.
+
+To compile from the command line on macOS, use `swift  build -Xswiftc "-target" -Xswiftc x86_64-apple-macosx10.12`

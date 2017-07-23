@@ -22,6 +22,8 @@ let package = Package(
 		.package(url:"https://github.com/bignerdranch/Freddy.git", from: "3.0.0"),
 		.package(url: "https://github.com/vapor/postgresql.git", from: "2.0.0"),
 		.package(url: "https://github.com/vapor/node.git", from: "2.0.0"),
+		.package(url: "https://github.com/rc2server/appModelSwift.git", from: "0.1.0"),
+		.package(url: "https://github.com/rc2server/CommandLine.git", .revision("f15b41a")),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -31,7 +33,7 @@ let package = Package(
             dependencies: ["Rc2AppServer"]),
         .target(
             name: "Rc2AppServer",
-            dependencies: ["PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "servermodel"]),
+            dependencies: ["PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "servermodel", "CommandLine"]),
         .target(
         	name: "servermodel",
         	dependencies: ["Node", "PostgreSQL", "Freddy"]),

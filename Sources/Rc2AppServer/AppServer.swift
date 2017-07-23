@@ -9,15 +9,20 @@ import PerfectLib
 import PerfectHTTP
 import PerfectHTTPServer
 import servermodel
+import CommandLineKit
 
 public let jsonType = "application/json"
 
 open class AppServer {
+	public enum Errors: Error {
+		case invalidDataDirectory
+	}
 	let server = HTTPServer()
 	var requestFilters = [(HTTPRequestFilter, HTTPFilterPriority)]()
 	var routes = [Route]()
 	private(set) var dao: Rc2DAO
 	private let authManager: AuthManager
+	private var dataDirURL: URL!
 
 	/// creates a server with the authentication filter installed
 	public init() {
@@ -38,8 +43,23 @@ open class AppServer {
 		return defRoutes
 	}
 	
+	func parseCommandLine() {
+		let cli = CommandLine()
+		let dataDir = StringOption(shortFlag: "D", longFlag: "datadir", required: true, helpMessage: "Specify path to directory with data files")
+		cli.addOption(dataDir)
+		do {
+			try cli.parse()
+			dataDirURL = URL(fileURLWithPath: dataDir.value!)
+			guard dataDirURL.hasDirectoryPath else { throw Errors.invalidDataDirectory }
+		} catch {
+			cli.printUsage(error)
+			exit(EX_USAGE)
+		}
+	}
+	
 	/// Starts the server. Adds any filters. If routes have been added, only adds those routes. If no routes were added, then adds defaultRoutes()
 	public func start() {
+		parseCommandLine()
 		server.setRequestFilters(requestFilters)
 		// jump through this hoop to allow dependency injection of routes
 		var robj = Routes()
