@@ -18,6 +18,12 @@ class Session: Hashable {
 	
 	func add(socket: SessionSocket) {
 		sockets.insert(socket)
+		socket.session = self
+	}
+	
+	func remove(socket: SessionSocket) {
+		sockets.remove(socket)
+		socket.session = nil
 	}
 	
 	var hashValue: Int { return ObjectIdentifier(self).hashValue }

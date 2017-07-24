@@ -12,7 +12,9 @@ import Rc2Model
 
 public class SessionHandler: WebSocketSessionHandler {
 	private let settings: AppSettings
+	private var activeSessions: [Int: Session] = [:]
 	public var socketProtocol: String? = "rsession"
+	private let lockQueue = DispatchQueue(label: "session handler")
 	
 	init(settings: AppSettings) {
 		self.settings = settings
@@ -40,10 +42,17 @@ public class SessionHandler: WebSocketSessionHandler {
 			return
 		}
 		// now have a workspace & user. find session
-		let session = Session(workspace: wspace)
-		//add connection to session
-		let sessionSocket = SessionSocket(socket: socket, user: user, settings: settings)
-		session.add(socket: sessionSocket)
+		lockQueue.sync {
+			var session = activeSessions[wspaceId]
+			if nil == session {
+				session = Session(workspace: wspace)
+				activeSessions[wspaceId] = session
+			}
+			//add connection to session
+			let sessionSocket = SessionSocket(socket: socket, user: user, settings: settings, delegate: self)
+			session!.add(socket: sessionSocket)
+			sessionSocket.start()
+		}
 	}
 	
 	/// sends an error message on the socket and then closes it
@@ -55,6 +64,18 @@ public class SessionHandler: WebSocketSessionHandler {
 		data.withUnsafeBytes { bytes in
 			socket.sendBinaryMessage(bytes: bytes.pointee, final: true) {
 				socket.close()
+			}
+		}
+	}
+}
+
+extension SessionHandler: SessionSocketDelegate {
+	func socketClosed(_ socket: SessionSocket) {
+		guard let session = socket.session else { return }
+		lockQueue.sync {
+			session.remove(socket: socket)
+			if session.sockets.count < 1 {
+				// TODO: shutdown the session, remove from activeSessions
 			}
 		}
 	}

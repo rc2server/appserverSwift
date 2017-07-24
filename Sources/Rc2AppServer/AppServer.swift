@@ -25,6 +25,8 @@ open class AppServer {
 	private let authManager: AuthManager
 	private var dataDirURL: URL!
 	private var settings: AppSettings!
+	private var sessionHandler: SessionHandler!
+	private var websocketHandler: WebSocketHandler!
 
 	/// creates a server with the authentication filter installed
 	public init() {
@@ -44,10 +46,7 @@ open class AppServer {
 		defRoutes.append(contentsOf: authManager.authRoutes())
 
 		defRoutes.append(Route(method: .get, uri: "/ws") { request, response in
-			let handler = WebSocketHandler() { (request: HTTPRequest, protocols: [String]) -> WebSocketSessionHandler? in
-				return SessionHandler(settings: self.settings)
-			}
-			handler.handleRequest(request: request, response: response)
+			self.websocketHandler.handleRequest(request: request, response: response)
 		})
 		
 		return defRoutes
@@ -72,6 +71,10 @@ open class AppServer {
 		parseCommandLine()
 		settings = AppSettings(dataDirURL: dataDirURL, dao: dao)
 		server.setRequestFilters(requestFilters)
+		sessionHandler = SessionHandler(settings: settings)
+		websocketHandler = WebSocketHandler() { [weak self] (request: HTTPRequest, protocols: [String]) -> WebSocketSessionHandler? in
+			return self?.sessionHandler
+		}
 		// jump through this hoop to allow dependency injection of routes
 		var robj = Routes()
 		if routes.count > 0 {
