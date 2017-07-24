@@ -17,11 +17,11 @@ public struct AppSettings {
 		self.dataDirURL = dataDirURL
 		self.dao = dao
 		encoder = JSONEncoder()
-		encoder.dataEncodingStrategy = .base64Encode
+		encoder.dataEncodingStrategy = .base64
 		encoder.dateEncodingStrategy = .secondsSince1970
 		encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
 		decoder = JSONDecoder()
-		decoder.dataDecodingStrategy = .base64Decode
+		decoder.dataDecodingStrategy = .base64
 		decoder.dateDecodingStrategy = .secondsSince1970
 		decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
 	}
