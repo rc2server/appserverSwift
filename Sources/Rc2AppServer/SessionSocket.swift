@@ -6,10 +6,13 @@
 
 import Foundation
 import PerfectWebSockets
+import PerfectLib
 import servermodel
+import Rc2Model
 
 protocol SessionSocketDelegate {
-	func socketClosed(_ socket: SessionSocket)
+	func closed(socket: SessionSocket)
+	func handle(command: SessionCommand, socket: SessionSocket)
 }
 
 class SessionSocket: Hashable {
@@ -29,7 +32,32 @@ class SessionSocket: Hashable {
 	var hashValue: Int { return ObjectIdentifier(self).hashValue }
 	
 	func start() {
-		
+		socket.readBytesMessage { [weak self] (bytes, opcode, isFinal) in
+			switch opcode {
+			case .binary, .text:
+				self?.handle(bytes: bytes)
+			case .close, .invalid:
+				self?.closed()
+			default:
+				Log.logger.error(message: "got unhandled opcode \(opcode) from websocket", true)
+			}
+		}
+	}
+	
+	private func handle(bytes: [UInt8]?) {
+		guard let bytes = bytes else { return }
+		//process bytes
+		let data = Data(bytes)
+		do {
+			let command = try settings.decoder.decode(SessionCommand.self, from: data)
+			delegate.handle(command: command, socket: self)
+		} catch {
+			Log.logger.warning(message: "Got error decoding message from client", true)
+		}
+	}
+	
+	private func closed() {
+		delegate.closed(socket: self)
 	}
 	
 	static func == (lhs: SessionSocket, rhs: SessionSocket) -> Bool {

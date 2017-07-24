@@ -70,7 +70,11 @@ public class SessionHandler: WebSocketSessionHandler {
 }
 
 extension SessionHandler: SessionSocketDelegate {
-	func socketClosed(_ socket: SessionSocket) {
+	func handle(command: SessionCommand, socket: SessionSocket) {
+		Log.logger.info(message: "got command: \(command)", true)
+	}
+	
+	func closed(socket: SessionSocket) {
 		guard let session = socket.session else { return }
 		lockQueue.sync {
 			session.remove(socket: socket)
