@@ -19,6 +19,7 @@ let package = Package(
 		.package(url:"https://github.com/PerfectlySoft/PerfectLib.git", from: "2.0.0"),
 		.package(url:"https://github.com/PerfectlySoft/Perfect-HTTP.git", from: "2.2.0"),
 		.package(url:"https://github.com/PerfectlySoft/Perfect-HTTPServer.git", from: "2.2.0"),
+		.package(url:"https://github.com/PerfectlySoft/Perfect-Net.git", from: "2.1.7"),
 		.package(url:"https://github.com/bignerdranch/Freddy.git", from: "3.0.0"),
 		.package(url: "https://github.com/vapor/postgresql.git", from: "2.0.0"),
 		.package(url: "https://github.com/vapor/node.git", from: "2.0.0"),

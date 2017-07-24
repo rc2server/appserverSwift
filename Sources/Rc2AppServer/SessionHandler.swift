@@ -1,5 +1,5 @@
 //
-//  Rc2SessionHandler.swift
+//  SessionHandler.swift
 //
 //  Copyright ©2017 Mark Lilback. This file is licensed under the ISC license.
 //
@@ -10,7 +10,7 @@ import PerfectHTTP
 import PerfectLib
 import Rc2Model
 
-public class Rc2SessionHandler: WebSocketSessionHandler {
+public class SessionHandler: WebSocketSessionHandler {
 	private let settings: AppSettings
 	public var socketProtocol: String? = "rsession"
 	

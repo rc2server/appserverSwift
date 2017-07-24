@@ -22,6 +22,6 @@ class SessionSocket: Hashable {
 	var hashValue: Int { return ObjectIdentifier(self).hashValue }
 	
 	static func == (lhs: SessionSocket, rhs: SessionSocket) -> Bool {
-		return lhs.f
+		return lhs.socket == rhs.socket
 	}
 }

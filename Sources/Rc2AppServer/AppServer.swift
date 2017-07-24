@@ -10,6 +10,7 @@ import PerfectHTTP
 import PerfectHTTPServer
 import servermodel
 import CommandLineKit
+import PerfectWebSockets
 
 public let jsonType = "application/json"
 
@@ -23,6 +24,7 @@ open class AppServer {
 	private(set) var dao: Rc2DAO
 	private let authManager: AuthManager
 	private var dataDirURL: URL!
+	private var settings: AppSettings!
 
 	/// creates a server with the authentication filter installed
 	public init() {
@@ -40,6 +42,14 @@ open class AppServer {
 	public func defaultRoutes() -> [Route] {
 		var defRoutes = [Route]()
 		defRoutes.append(contentsOf: authManager.authRoutes())
+
+		defRoutes.append(Route(method: .get, uri: "/ws") { request, response in
+			let handler = WebSocketHandler() { (request: HTTPRequest, protocols: [String]) -> WebSocketSessionHandler? in
+				return SessionHandler(settings: self.settings)
+			}
+			handler.handleRequest(request: request, response: response)
+		})
+		
 		return defRoutes
 	}
 	
@@ -60,6 +70,7 @@ open class AppServer {
 	/// Starts the server. Adds any filters. If routes have been added, only adds those routes. If no routes were added, then adds defaultRoutes()
 	public func start() {
 		parseCommandLine()
+		settings = AppSettings(dataDirURL: dataDirURL, dao: dao)
 		server.setRequestFilters(requestFilters)
 		// jump through this hoop to allow dependency injection of routes
 		var robj = Routes()

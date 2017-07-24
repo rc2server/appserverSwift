@@ -82,7 +82,7 @@ func makeRoutes() -> Routes {
 		
 	}
 	
-    // Add the endpoint for the WebSocket example system
+	// Add the endpoint for the WebSocket example system
 	routes.add(method: .get, uri: "/echo", handler: {
         request, response in
         

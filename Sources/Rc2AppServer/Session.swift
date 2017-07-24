@@ -8,7 +8,7 @@ import Foundation
 import Rc2Model
 import servermodel
 
-class Session {
+class Session: Hashable {
 	let workspace: Workspace
 	private(set) var sockets = Set<SessionSocket>()
 	
@@ -18,5 +18,11 @@ class Session {
 	
 	func add(socket: SessionSocket) {
 		sockets.insert(socket)
+	}
+	
+	var hashValue: Int { return ObjectIdentifier(self).hashValue }
+	
+	static func == (lhs: Session, rhs: Session) -> Bool {
+		return lhs.workspace.id == rhs.workspace.id
 	}
 }
