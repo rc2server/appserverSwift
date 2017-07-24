@@ -10,8 +10,11 @@ import Node
 
 open class Rc2DAO {
 	let pgdb: PostgreSQL.Database
+	// queue is used by internal methods all database calls evenetually use
+	let queue: DispatchQueue
 	
 	public init(host: String, user: String, database: String) throws {
+		queue = DispatchQueue(label: "database serial queue")
 		pgdb = try PostgreSQL.Database(hostname: host, database: database, user: user, password: "")
 	}
 	
@@ -162,21 +165,29 @@ open class Rc2DAO {
 	//MARK: - private methods
 	private func getSingleRow(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> Node
 	{
-		let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
-		let result = try conn.execute("select * from \(tableName) where \(keyName) = $1", [keyValue])
-		guard let array = result.array, array.count == 1 else {
-			throw ModelError.duplicateObject
+		var finalResults: Node!
+		try queue.sync { () throws -> Void in
+			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
+			let result = try conn.execute("select * from \(tableName) where \(keyName) = $1", [keyValue])
+			guard let array = result.array, array.count == 1 else {
+				throw ModelError.duplicateObject
+			}
+			finalResults = array[0]
 		}
-		return array[0]
+		return finalResults
 	}
 	
 	private func getRows(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> [Node]
 	{
-		let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
-		let result = try conn.execute("select * from \(tableName) where \(keyName) = $1", [keyValue])
-		guard let array = result.array, array.count > 0 else {
-			return []
+		var finalResults: [Node] = []
+		try queue.sync  { () throws -> Void in
+			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
+			let result = try conn.execute("select * from \(tableName) where \(keyName) = $1", [keyValue])
+			guard let array = result.array, array.count > 0 else {
+				return
+			}
+			finalResults = array
 		}
-		return array
+		return finalResults
 	}
 }

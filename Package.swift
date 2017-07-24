@@ -33,7 +33,7 @@ let package = Package(
             dependencies: ["Rc2AppServer"]),
         .target(
             name: "Rc2AppServer",
-            dependencies: ["PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "servermodel", "CommandLine"]),
+            dependencies: ["PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "servermodel", "CommandLine", "Rc2Model"]),
         .target(
         	name: "servermodel",
         	dependencies: ["Node", "PostgreSQL", "Freddy"]),
