@@ -96,8 +96,8 @@
         "repositoryURL": "https://github.com/PerfectlySoft/Perfect-HTTPServer.git",
         "state": {
           "branch": null,
-          "revision": "87873f3382f65fad82e9d74c8f965611c7e05eef",
-          "version": "2.2.15"
+          "revision": "ed8db35571dd89167e1ebc5135cd61b6e21b869e",
+          "version": "2.2.17"
         }
       },
       {

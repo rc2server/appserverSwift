@@ -31,19 +31,32 @@ class SessionSocket: Hashable {
 	
 	var hashValue: Int { return ObjectIdentifier(self).hashValue }
 	
+	/// starts listening for messages
 	func start() {
+		DispatchQueue.global().async { [weak self] in
+			self?.readNextMessage()
+		}
+	}
+	
+	/// start processing input
+	private func readNextMessage() {
 		socket.readBytesMessage { [weak self] (bytes, opcode, isFinal) in
 			switch opcode {
 			case .binary, .text:
 				self?.handle(bytes: bytes)
 			case .close, .invalid:
 				self?.closed()
+				return
 			default:
 				Log.logger.error(message: "got unhandled opcode \(opcode) from websocket", true)
+			}
+			DispatchQueue.global().async { [weak self] in
+				self?.readNextMessage()
 			}
 		}
 	}
 	
+	/// process bytes received from the network
 	private func handle(bytes: [UInt8]?) {
 		guard let bytes = bytes else { return }
 		//process bytes
@@ -56,10 +69,12 @@ class SessionSocket: Hashable {
 		}
 	}
 	
+	/// called when remote closes the connection
 	private func closed() {
 		delegate.closed(socket: self)
 	}
 	
+	// Equatable support
 	static func == (lhs: SessionSocket, rhs: SessionSocket) -> Bool {
 		return lhs.socket == rhs.socket
 	}

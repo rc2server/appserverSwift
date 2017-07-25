@@ -45,7 +45,7 @@ open class AppServer {
 		var defRoutes = [Route]()
 		defRoutes.append(contentsOf: authManager.authRoutes())
 
-		defRoutes.append(Route(method: .get, uri: "/ws") { request, response in
+		defRoutes.append(Route(method: .get, uri: "/ws/{wsId}") { request, response in
 			self.websocketHandler.handleRequest(request: request, response: response)
 		})
 		
