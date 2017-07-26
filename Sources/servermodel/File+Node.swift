@@ -10,7 +10,7 @@ import Rc2Model
 
 public extension File {
 	public init(node: Node) throws {
-		self.init(id: try node.get("id"), wspaceId: try node.get("wspaceid"), name: try node.get("name"), version: try node.get("version"), dateCreated: try node.get("datecreated"), lastModified: try node.get("lastmodified"), fileSize: try node.get("size"))
+		self.init(id: try node.get("id"), wspaceId: try node.get("wspaceid"), name: try node.get("name"), version: try node.get("version"), dateCreated: try node.get("datecreated"), lastModified: try node.get("lastmodified"), fileSize: try node.get("filesize"))
 	}
 //
 //	public override func makeNode(in context: Context?) throws -> Node {

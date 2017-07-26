@@ -30,6 +30,11 @@ class Session: SessionSocketDelegate {
 			socket.session = self
 			lastClientDisconnectTime = nil
 		}
+		do {
+			try send(object: try settings.dao.getUserInfo(user: socket.user))
+		} catch {
+			Log.logger.error(message: "failed to send BulkUserInfo \(error)", true)
+		}
 	}
 	
 	func remove(socket: SessionSocket) {

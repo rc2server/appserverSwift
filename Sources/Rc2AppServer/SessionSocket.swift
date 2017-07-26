@@ -42,9 +42,9 @@ class SessionSocket: Hashable {
 	
 	func send(data: Data, completion: (@escaping () -> Void)) {
 		lockQueue.sync {
-			data.withUnsafeBytes { (ptr: UnsafePointer<[UInt8]>) -> Void in
-				socket.sendBinaryMessage(bytes: ptr.pointee, final: true, completion: completion)
-			}
+			// TODO: this is copying the bytes. Is this possible to do w/o a copy? Maybe not, since it happens asynchronously
+			let rawdata = [UInt8](data)
+			socket.sendBinaryMessage(bytes: rawdata, final: true, completion: completion)
 		}
 	}
 	
