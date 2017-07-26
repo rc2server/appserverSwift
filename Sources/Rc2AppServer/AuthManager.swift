@@ -63,7 +63,7 @@ class AuthManager {
 			response.completed()
 			return
 		} catch {
-			print("invalid login json")
+			print("invalid login json \(error)")
 			response.completed(status: .badRequest)
 			return
 		}		

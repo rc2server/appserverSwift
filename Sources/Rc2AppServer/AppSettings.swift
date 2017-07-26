@@ -10,8 +10,8 @@ import servermodel
 public struct AppSettings {
 	public let dataDirURL: URL
 	public let dao: Rc2DAO
-	public let encoder: JSONEncoder
-	public let decoder: JSONDecoder
+	private let encoder: JSONEncoder
+	private let decoder: JSONDecoder
 	
 	init(dataDirURL: URL, dao: Rc2DAO) {
 		self.dataDirURL = dataDirURL
@@ -24,5 +24,13 @@ public struct AppSettings {
 		decoder.dataDecodingStrategy = .base64
 		decoder.dateDecodingStrategy = .secondsSince1970
 		decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
+	}
+	
+	func encode<T: Encodable>(_ object: T) throws -> Data {
+		return try encoder.encode(object)
+	}
+	
+	func decode<T: Decodable>(data: Data) throws -> T {
+		return try decoder.decode(T.self, from: data)
 	}
 }

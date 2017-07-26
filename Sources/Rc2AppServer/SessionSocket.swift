@@ -16,7 +16,8 @@ protocol SessionSocketDelegate {
 }
 
 class SessionSocket: Hashable {
-	let socket: WebSocket
+	fileprivate let socket: WebSocket
+	fileprivate let lockQueue: DispatchQueue
 	let user: User
 	let settings: AppSettings
 	let delegate: SessionSocketDelegate
@@ -27,6 +28,7 @@ class SessionSocket: Hashable {
 		self.user = user
 		self.settings = settings
 		self.delegate = delegate
+		lockQueue = DispatchQueue(label: "socket queue (\(user.login))")
 	}
 	
 	var hashValue: Int { return ObjectIdentifier(self).hashValue }
@@ -35,6 +37,14 @@ class SessionSocket: Hashable {
 	func start() {
 		DispatchQueue.global().async { [weak self] in
 			self?.readNextMessage()
+		}
+	}
+	
+	func send(data: Data, completion: (@escaping () -> Void)) {
+		lockQueue.sync {
+			data.withUnsafeBytes { (ptr: UnsafePointer<[UInt8]>) -> Void in
+				socket.sendBinaryMessage(bytes: ptr.pointee, final: true, completion: completion)
+			}
 		}
 	}
 	
@@ -62,7 +72,7 @@ class SessionSocket: Hashable {
 		//process bytes
 		let data = Data(bytes)
 		do {
-			let command = try settings.decoder.decode(SessionCommand.self, from: data)
+			let command: SessionCommand = try settings.decode(data: data)
 			delegate.handle(command: command, socket: self)
 		} catch {
 			Log.logger.warning(message: "Got error decoding message from client", true)

@@ -18,6 +18,7 @@ public class SessionHandler: WebSocketSessionHandler {
 	
 	init(settings: AppSettings) {
 		self.settings = settings
+		// TODO: need to schedule a timer that cleans up any sessions with no clients
 	}
 	
 	public func handleSession(request req: HTTPRequest, socket: WebSocket)
@@ -45,11 +46,11 @@ public class SessionHandler: WebSocketSessionHandler {
 		lockQueue.sync {
 			var session = activeSessions[wspaceId]
 			if nil == session {
-				session = Session(workspace: wspace)
+				session = Session(workspace: wspace, settings: settings)
 				activeSessions[wspaceId] = session
 			}
 			//add connection to session
-			let sessionSocket = SessionSocket(socket: socket, user: user, settings: settings, delegate: self)
+			let sessionSocket = SessionSocket(socket: socket, user: user, settings: settings, delegate: session!)
 			session!.add(socket: sessionSocket)
 			sessionSocket.start()
 		}
@@ -58,7 +59,7 @@ public class SessionHandler: WebSocketSessionHandler {
 	/// sends an error message on the socket and then closes it
 	fileprivate func fatalError(socket: WebSocket, error: SessionError)
 	{
-		guard let data = try? settings.encoder.encode(error) else {
+		guard let data = try? settings.encode(error) else {
 			return
 		}
 		data.withUnsafeBytes { bytes in
@@ -69,18 +70,3 @@ public class SessionHandler: WebSocketSessionHandler {
 	}
 }
 
-extension SessionHandler: SessionSocketDelegate {
-	func handle(command: SessionCommand, socket: SessionSocket) {
-		Log.logger.info(message: "got command: \(command)", true)
-	}
-	
-	func closed(socket: SessionSocket) {
-		guard let session = socket.session else { return }
-		lockQueue.sync {
-			session.remove(socket: socket)
-			if session.sockets.count < 1 {
-				// TODO: shutdown the session, remove from activeSessions
-			}
-		}
-	}
-}

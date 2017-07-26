@@ -24,6 +24,32 @@ open class Rc2DAO {
 	}
 	
 	//MARK: - access methods
+	/// Returns bulk info about a user to return to a client on successful connection
+	///
+	/// - Parameter user: the user who's info should be returned
+	/// - Returns: the requested user info
+	/// - Throws: any errors from communicating with the database server
+	public func getUserInfo(user: User) throws -> BulkUserInfo {
+		let projects = try getProjects(ownedBy: user)
+		var wspaceDict = [Int: [Workspace]]()
+		var fileDict = [Int: [File]]()
+		// load workspaces
+		let wsNodes = try getRows(query: "select w.* from rcproject p join rcworkspace w on w.projectid = p.id  where p.userid = \(user.id)")
+		projects.forEach { wspaceDict[$0.id] = [] }
+		try wsNodes.forEach {
+			let wspace = try Workspace(node: $0)
+			wspaceDict[wspace.projectId]!.append(wspace)
+			fileDict[wspace.id] = []
+		}
+		// load files
+		let fileNodes = try getRows(query: "select f.* from rcproject p join rcworkspace w on w.projectid = p.id join rcfile f on f.wspaceid = w.id  where p.userid = \(user.id)")
+		try fileNodes.forEach {
+			let file = try File(node: $0)
+			fileDict[file.wspaceId]!.append(file)
+		}
+		return BulkUserInfo(user: user, projects: projects, workspaces: wspaceDict, files: fileDict)
+	}
+	
 	/// get user with specified id
 	///
 	/// - Parameters:
@@ -32,12 +58,11 @@ open class Rc2DAO {
 	/// - Returns: user with specified id
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
 	public func getUser(id: Int, connection: Connection? = nil) throws -> User? {
-		guard let user = try User(node: getSingleRow(connection, tableName: "rcuser", keyName: "id", keyValue: Node(integerLiteral: id)))
-			else { return nil }
-		return user
+		guard let node = try getSingleRow(connection, tableName: "rcuser", keyName: "id", keyValue: Node(integerLiteral: id)) else { return nil }
+		return try User(node: node)
 	}
 	
-	/// get user with specified id
+	/// get user with specified login
 	///
 	/// - Parameters:
 	///   - login: the desired user's login
@@ -45,9 +70,8 @@ open class Rc2DAO {
 	/// - Returns: user with specified login
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
 	public func getUser(login: String, connection: Connection? = nil) throws -> User? {
-		guard let user = try User(node: getSingleRow(connection, tableName: "rcuser", keyName: "login", keyValue: Node(stringLiteral: login)))
-			else { return nil }
-		return user
+		guard let node = try getSingleRow(connection, tableName: "rcuser", keyName: "login", keyValue: Node(stringLiteral: login)) else { return nil }
+		return try User(node: node)
 	}
 	
 	/// gets the user with the specified login and password. Returns nil if no user matches.
@@ -83,9 +107,9 @@ open class Rc2DAO {
 	/// - Returns: project with id of id
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
 	public func getProject(id: Int, connection: Connection? = nil) throws -> Project? {
-		guard let project = try Project(node: getSingleRow(tableName: "rcproject", keyName: "id", keyValue: Node(integerLiteral: id)))
+		guard let node = try getSingleRow(tableName: "rcproject", keyName: "id", keyValue: Node(integerLiteral: id))
 			else { return nil }
-		return project
+		return try Project(node: node)
 	}
 	
 	/// get projects owned by specified user
@@ -108,9 +132,9 @@ open class Rc2DAO {
 	/// - Returns: workspace with id of id
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
 	public func getWorkspace(id: Int, connection: Connection? = nil) throws -> Workspace? {
-		guard let wspace = try Workspace(node: getSingleRow(tableName: "rcworkspace", keyName: "id", keyValue: Node(integerLiteral: id)))
+		guard let node = try getSingleRow(tableName: "rcworkspace", keyName: "id", keyValue: Node(integerLiteral: id))
 			else { return nil }
-		return wspace
+		return try Workspace(node: node)
 	}
 	
 	/// gets workspaces belonging to a project
@@ -133,9 +157,9 @@ open class Rc2DAO {
 	/// - Returns: file with id
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
 	public func getFile(id: Int, connection: Connection? = nil) throws -> File? {
-		guard let file = try File(node: getSingleRow(tableName: "rcfile", keyName: "id", keyValue: Node(integerLiteral: id)))
+		guard let node = try getSingleRow(tableName: "rcfile", keyName: "id", keyValue: Node(integerLiteral: id))
 			else { return nil }
-		return file
+		return try File(node: node)
 	}
 	
 	/// gets files belonging to a workspace
@@ -159,21 +183,27 @@ open class Rc2DAO {
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
 	public func getFileData(fileId: Int, connection: Connection? = nil) throws -> Data {
 		let result = try getSingleRow(tableName: "rcfiledata", keyName: "id", keyValue: try Node(node: fileId))
-		return try result.get("bindata")
+		guard let data: Data = try result?.get("bindata") else { throw ModelError.notFound }
+		return data
 	}
 	
 	
 	//MARK: - private methods
-	private func getSingleRow(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> Node
+	private func getSingleRow(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> Node?
 	{
-		var finalResults: Node!
+		var finalResults: Node? = nil
 		try queue.sync { () throws -> Void in
 			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
 			let result = try conn.execute("select * from \(tableName) where \(keyName) = $1", [keyValue])
-			guard let array = result.array, array.count == 1 else {
-				throw ModelError.duplicateObject
+			guard let array = result.array else { return }
+			switch array.count {
+				case 0:
+					return
+				case 1:
+					finalResults = array[0]
+				default:
+					throw ModelError.duplicateObject
 			}
-			finalResults = array[0]
 		}
 		return finalResults
 	}
@@ -184,6 +214,19 @@ open class Rc2DAO {
 		try queue.sync  { () throws -> Void in
 			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
 			let result = try conn.execute("select * from \(tableName) where \(keyName) = $1", [keyValue])
+			guard let array = result.array, array.count > 0 else {
+				return
+			}
+			finalResults = array
+		}
+		return finalResults
+	}
+	
+	private func getRows(query: String, connection: Connection? = nil) throws -> [Node] {
+		var finalResults: [Node] = []
+		try queue.sync  { () throws -> Void in
+			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
+			let result = try conn.execute(query)
 			guard let array = result.array, array.count > 0 else {
 				return
 			}

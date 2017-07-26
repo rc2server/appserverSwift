@@ -9,7 +9,7 @@ import Node
 import Rc2Model
 
 public extension User {
-	public init?(node: Node) throws {
+	public init(node: Node) throws {
 		self.init(id: try node.get("id"), version: try node.get("version"), login: try node.get("login"), email: try node.get("email"), passwordHash: node["passworddata"]?.string, firstName: node["firstName"]?.string, lastName: node["lastName"]?.string, isAdmin: try node.get("admin"), isEnabled: try node.get("enabled"))
 	}
 //
