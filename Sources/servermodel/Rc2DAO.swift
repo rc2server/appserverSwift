@@ -7,6 +7,7 @@
 import Foundation
 import PostgreSQL
 import Node
+import Rc2Model
 
 open class Rc2DAO {
 	let pgdb: PostgreSQL.Database
