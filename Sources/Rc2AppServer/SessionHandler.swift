@@ -29,10 +29,8 @@ public class SessionHandler: WebSocketSessionHandler {
 			return
 		}
 		//figure out the user and the workspace they want to use
-		guard req.path.hasPrefix("/ws/"),
-			let idx = req.path.index(req.path.startIndex, offsetBy: 4, limitedBy: req.path.endIndex),
-			let path = Optional.some(req.path.substring(from: idx)),
-			let wspaceId = Int(path),
+		guard let rawWspaceId = req.urlVariables["wsId"],
+			let wspaceId = Int(rawWspaceId),
 			let rawWspace = try? settings.dao.getWorkspace(id: wspaceId),
 			let wspace = rawWspace,
 			wspace.userId == loginToken.userId,
