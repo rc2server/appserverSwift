@@ -38,10 +38,13 @@ extension Session {
 	/// Send a message to all clients
 	///
 	/// - Parameter object: the message to send
-	/// - Throws: any encoding errors
-	func broadcastToAllClients<T: Encodable>(object: T) throws {
-		let data = try settings.encode(object)
-		sockets.forEach { $0.send(data: data) { () in } }
+	func broadcastToAllClients<T: Encodable>(object: T) {
+		do {
+			let data = try settings.encode(object)
+			sockets.forEach { $0.send(data: data) { () in } }
+		} catch {
+			Log.logger.warning(message: "error sending to all client (\(error))", true)
+		}
 	}
 }
 
@@ -57,7 +60,7 @@ extension Session {
 			lastClientDisconnectTime = nil
 		}
 		do {
-			try broadcastToAllClients(object: try settings.dao.getUserInfo(user: socket.user))
+			broadcastToAllClients(object: try settings.dao.getUserInfo(user: socket.user))
 		} catch {
 			Log.logger.error(message: "failed to send BulkUserInfo \(error)", true)
 		}
@@ -115,7 +118,9 @@ extension Session: SessionSocketDelegate {
 // MARK: - Command Handling
 extension Session {
 	private func handleExecute(params: SessionCommand.ExecuteParams) {
-		
+		if params.isUserInitiated {
+			broadcastToAllClients(object: SessionResponse.echoExecute(SessionResponse.ExecuteData(transactionId: params.transactionId, source: params.source)))
+		}
 	}
 	
 	private func handleExecuteFile(params: SessionCommand.ExecuteFileParams) {
