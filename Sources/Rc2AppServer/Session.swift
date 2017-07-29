@@ -8,6 +8,7 @@ import Foundation
 import PerfectLib
 import Rc2Model
 import servermodel
+import PerfectNet
 
 class Session {
 	
@@ -17,11 +18,27 @@ class Session {
 	private(set) var sockets = Set<SessionSocket>()
 	/// allows whatever caches sessions to know when this session
 	private(set) var lastClientDisconnectTime: Date?
+	private var rclient: ComputeWorker?
 	
 	init(workspace: Workspace, settings: AppSettings) {
 		self.workspace = workspace
 		self.settings = settings
 		self.lockQueue = DispatchQueue(label: "workspace \(workspace.id)")
+	}
+	
+	public func startSession() throws {
+		let net = NetTCP()
+		do {
+			try net.connect(address: settings.computeHost, port: 7714, timeoutSeconds: 4) { socket in
+				guard let socket = socket else { fatalError() }
+				Log.logger.info(message: "connected to compute server", true)
+				self.rclient = ComputeWorker(socket: socket, settings: self.settings, delegate: self)
+				self.rclient?.start()
+			}
+		} catch {
+			Log.logger.error(message: "failed to connect to compute engine", true)
+			throw error
+		}
 	}
 	
 	/// Hashable implementation
@@ -112,6 +129,17 @@ extension Session: SessionSocketDelegate {
 		case .save(let params):
 			handleSave(params: params, socket: socket)
 		}
+	}
+}
+
+// MARK: compute delegate
+extension Session: ComputeWorkerDelegate {
+	func handleCompute(data: Data) {
+		print("got \(data.count) bytes")
+	}
+	
+	func handleCompute(error: ComputeError) {
+		Log.logger.error(message: "got error from compute engine \(error)", true)
 	}
 }
 

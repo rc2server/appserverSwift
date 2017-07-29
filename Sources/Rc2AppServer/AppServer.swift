@@ -21,8 +21,8 @@ open class AppServer {
 	let server = HTTPServer()
 	var requestFilters = [(HTTPRequestFilter, HTTPFilterPriority)]()
 	var routes = [Route]()
-	private(set) var dao: Rc2DAO
-	private let authManager: AuthManager
+	private(set) var dao: Rc2DAO!
+	private var authManager: AuthManager!
 	private var dataDirURL: URL!
 	private var settings: AppSettings!
 	private var sessionHandler: SessionHandler!
@@ -30,14 +30,6 @@ open class AppServer {
 
 	/// creates a server with the authentication filter installed
 	public init() {
-		do {
-			dao = try Rc2DAO(host: "localhost", user: "rc2", database: "rc2")
-			authManager = AuthManager(dao: dao)
-		} catch {
-			print("failed to connect to database \(error)")
-			exit(1)
-		}
-		requestFilters.append((AuthRequestFilter(dao: dao.createTokenDAO()), .high))
 	}
 	
 	/// returns the default routes for the application
@@ -68,8 +60,19 @@ open class AppServer {
 	
 	/// Starts the server. Adds any filters. If routes have been added, only adds those routes. If no routes were added, then adds defaultRoutes()
 	public func start() {
+		dao = Rc2DAO()
 		parseCommandLine()
-		settings = AppSettings(dataDirURL: dataDirURL, dao: dao)
+		settings = AppSettings(dataDirURL: dataDirURL, computeHost: "localhost", dbHost: "localhost", dao: dao)
+
+		do {
+			try dao.connect(host: settings.dbHost, user: "rc2", database: "rc2")
+			authManager = AuthManager(dao: dao)
+		} catch {
+			print("failed to connect to database \(error)")
+			exit(1)
+		}
+		requestFilters.append((AuthRequestFilter(dao: dao.createTokenDAO()), .high))
+
 		server.setRequestFilters(requestFilters)
 		sessionHandler = SessionHandler(settings: settings)
 		websocketHandler = WebSocketHandler() { [weak self] (request: HTTPRequest, protocols: [String]) -> WebSocketSessionHandler? in

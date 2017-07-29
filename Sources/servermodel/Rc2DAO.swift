@@ -10,16 +10,21 @@ import Node
 import Rc2Model
 
 open class Rc2DAO {
-	let pgdb: PostgreSQL.Database
+	private(set) var pgdb: PostgreSQL.Database!
 	// queue is used by internal methods all database calls evenetually use
 	let queue: DispatchQueue
 	
-	public init(host: String, user: String, database: String) throws {
+	public init() {
 		queue = DispatchQueue(label: "database serial queue")
+	}
+	
+	public func connect(host: String, user: String, database: String) throws {
+		precondition(pgdb == nil)
 		pgdb = try PostgreSQL.Database(hostname: host, database: database, user: user, password: "")
 	}
 	
 	public func createTokenDAO() -> LoginTokenDAO {
+		precondition(pgdb != nil)
 		return LoginTokenDAO(database: pgdb)
 	}
 	
@@ -30,6 +35,7 @@ open class Rc2DAO {
 	/// - Returns: the requested user info
 	/// - Throws: any errors from communicating with the database server
 	public func getUserInfo(user: User) throws -> BulkUserInfo {
+		precondition(pgdb != nil)
 		let projects = try getProjects(ownedBy: user)
 		var wspaceDict = [Int: [Workspace]]()
 		var fileDict = [Int: [File]]()
@@ -83,6 +89,7 @@ open class Rc2DAO {
 	/// - Returns: user if the login/password are valid, nil if user not found
 	/// - Throws: node errors 
 	public func getUser(login: String, password: String, connection: Connection? = nil) throws -> User? {
+		precondition(pgdb != nil)
 		let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
 		var query = "select * from rcuser where login = $1"
 		var data = [login]
@@ -191,6 +198,7 @@ open class Rc2DAO {
 	//MARK: - private methods
 	private func getSingleRow(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> Node?
 	{
+		precondition(pgdb != nil)
 		var finalResults: Node? = nil
 		try queue.sync { () throws -> Void in
 			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
@@ -210,6 +218,7 @@ open class Rc2DAO {
 	
 	private func getRows(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> [Node]
 	{
+		precondition(pgdb != nil)
 		var finalResults: [Node] = []
 		try queue.sync  { () throws -> Void in
 			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
@@ -223,6 +232,7 @@ open class Rc2DAO {
 	}
 	
 	private func getRows(query: String, connection: Connection? = nil) throws -> [Node] {
+		precondition(pgdb != nil)
 		var finalResults: [Node] = []
 		try queue.sync  { () throws -> Void in
 			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!

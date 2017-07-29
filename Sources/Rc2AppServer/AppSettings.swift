@@ -9,13 +9,17 @@ import servermodel
 
 public struct AppSettings {
 	public let dataDirURL: URL
+	public let computeHost: String
+	public let dbHost: String
 	public let dao: Rc2DAO
 	private let encoder: JSONEncoder
 	private let decoder: JSONDecoder
 	
-	init(dataDirURL: URL, dao: Rc2DAO) {
+	init(dataDirURL: URL, computeHost: String, dbHost: String, dao: Rc2DAO) {
 		self.dataDirURL = dataDirURL
 		self.dao = dao
+		self.computeHost = computeHost
+		self.dbHost = dbHost
 		encoder = JSONEncoder()
 		encoder.dataEncodingStrategy = .base64
 		encoder.dateEncodingStrategy = .secondsSince1970

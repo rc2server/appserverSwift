@@ -97,7 +97,7 @@
         "state": {
           "branch": null,
           "revision": "ed8db35571dd89167e1ebc5135cd61b6e21b869e",
-          "version": "2.2.17"
+          "version": "2.3.0"
         }
       },
       {
@@ -143,6 +143,15 @@
           "branch": null,
           "revision": "5efa27f6dbf51434475de5a429d2eb7ea74eab11",
           "version": "2.0.2"
+        }
+      },
+      {
+        "package": "Signals",
+        "repositoryURL": "https://github.com/IBM-Swift/BlueSignals.git",
+        "state": {
+          "branch": null,
+          "revision": "99ac410f8ad4a75f0ec9a9d72512d5028e804253",
+          "version": "0.9.48"
         }
       }
     ]
