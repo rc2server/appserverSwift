@@ -29,7 +29,8 @@ class Session {
 	public func startSession() throws {
 		let net = NetTCP()
 		do {
-			try net.connect(address: settings.computeHost, port: 7714, timeoutSeconds: 4) { socket in
+			try net.connect(address: settings.config.computeHost, port: settings.config.computePort, timeoutSeconds: settings.config.computeTimeout)
+			{ socket in
 				guard let socket = socket else { fatalError() }
 				Log.logger.info(message: "connected to compute server", true)
 				self.rclient = ComputeWorker(socket: socket, settings: self.settings, delegate: self)

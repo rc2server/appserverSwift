@@ -62,10 +62,10 @@ open class AppServer {
 	public func start() {
 		dao = Rc2DAO()
 		parseCommandLine()
-		settings = AppSettings(dataDirURL: dataDirURL, computeHost: "localhost", dbHost: "localhost", dao: dao)
+		settings = AppSettings(dataDirURL: dataDirURL, dao: dao)
 
 		do {
-			try dao.connect(host: settings.dbHost, user: "rc2", database: "rc2")
+			try dao.connect(host: settings.config.dbHost, user: "rc2", database: "rc2")
 			authManager = AuthManager(dao: dao)
 		} catch {
 			print("failed to connect to database \(error)")
