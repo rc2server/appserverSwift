@@ -7,6 +7,7 @@
 import Foundation
 import PerfectNet
 import PerfectLib
+import Rc2Model
 
 fileprivate let ConnectTimeout = 5
 
@@ -26,16 +27,38 @@ public class ComputeWorker {
 	let socket: NetTCP
 	let readBuffer = Bytes()
 	let settings: AppSettings
+	let workspace: Workspace
+	let sessionId: Int
 	private(set) weak var delegate: ComputeWorkerDelegate?
+	private let encoder = JSONEncoder()
+	private let decoder = JSONDecoder()
+	private let compute = ComputeCommand()
 	
-	public init(socket: NetTCP, settings: AppSettings, delegate: ComputeWorkerDelegate) {
+	public init(workspace: Workspace, sessionId: Int, socket: NetTCP, settings: AppSettings, delegate: ComputeWorkerDelegate) {
+		self.workspace = workspace
+		self.sessionId = sessionId
 		self.socket = socket
 		self.settings = settings
 		self.delegate = delegate
-	}
+
+		decoder.dataDecodingStrategy = .base64
+		decoder.dateDecodingStrategy = .millisecondsSince1970
+		decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
+}
 	
 	public func start() {
+		do {
+			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: settings.config.dbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName))
+		} catch {
+			Log.logger.error(message: "Error opening compute connection: \(error)", true)
+			// TODO close Session and tell client
+		}
 		readNext()
+	}
+	
+	public func shutdown() throws {
+		try send(data: compute.close())
+		try settings.dao.closeSessionRecord(sessionId: sessionId)
 	}
 	
 	public func send(data: Data) throws {

@@ -68,19 +68,19 @@ public struct AppSettings {
 		/// The database host name to connect to. Defaults to "dbserver".
 		public let dbHost: String
 		/// The database port to connect to. Defaults to 5432.
-		public let dbPort: UInt16
-		/// The name of the database to connect to. Defaults to "rc2".
+		public let dbUser: String
+		/// The name of the user to connect as. Defaults to "rc2".
 		public let dbName: String
 		/// The host name of the compute engine. Defaults to "compute".
 		public let computeHost: String
 		/// The port of the compute engine. Defaults to 7714.
 		public let computePort: UInt16
 		/// Seconds to wait for a connection to the compute engine to open. Defaults to 4. -1 means no timeout.
-		public let computeTimeout: Int
+		public let computeTimeout: Double
 		
 		enum CodingKeys: String, CodingKey {
 			case dbHost
-			case dbPort
+			case dbUser
 			case dbName
 			case computeHost
 			case computePort
@@ -93,11 +93,11 @@ public struct AppSettings {
 		public init(from cdecoder: Decoder) throws {
 			let container = try cdecoder.container(keyedBy: CodingKeys.self)
 			dbHost = try container.decodeIfPresent(String.self, forKey: .dbHost) ?? "dbserver"
-			dbPort = try container.decodeIfPresent(UInt16.self, forKey: .dbPort) ?? 5432
+			dbUser = try container.decodeIfPresent(String.self, forKey: .dbUser) ?? "rc2"
 			dbName = try container.decodeIfPresent(String.self, forKey: .dbName) ?? "rc2"
 			computeHost = try container.decodeIfPresent(String.self, forKey: .computeHost) ?? "compute"
 			computePort = try container.decodeIfPresent(UInt16.self, forKey: .computePort) ?? 7714
-			computeTimeout = try container.decodeIfPresent(Int.self, forKey: .computeTimeout) ?? 4
+			computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
 		}
 	}
 }

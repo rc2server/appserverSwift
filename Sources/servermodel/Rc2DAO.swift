@@ -10,6 +10,10 @@ import Node
 import Rc2Model
 
 open class Rc2DAO {
+	enum DBError: Error {
+		case queryFailed
+	}
+	
 	private(set) var pgdb: PostgreSQL.Database!
 	// queue is used by internal methods all database calls evenetually use
 	let queue: DispatchQueue
@@ -104,6 +108,24 @@ open class Rc2DAO {
 			return nil
 		}
 		return try User(node: array[0])
+	}
+	
+	public func createSessionRecord(wspaceId: Int) throws -> Int {
+		precondition(pgdb != nil)
+		let conn = try self.pgdb.makeConnection()
+		let query = "insert into sessionrecord (wspaceid) values ($1) returning id"
+		let result = try conn.execute(query, [wspaceId])
+		guard let array = result.array, array.count == 1 else {
+			throw DBError.queryFailed
+		}
+		return try array[0].get("id")
+	}
+	
+	public func closeSessionRecord(sessionId: Int) throws {
+		precondition(pgdb != nil)
+		let conn = try self.pgdb.makeConnection()
+		let query = "update sessionrecord set closeDate = now() where id = $1"
+		_ = try conn.execute(query, [sessionId])
 	}
 	
 	/// get project with specific id

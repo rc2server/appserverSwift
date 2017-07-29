@@ -19,6 +19,7 @@ class Session {
 	/// allows whatever caches sessions to know when this session
 	private(set) var lastClientDisconnectTime: Date?
 	private var rclient: ComputeWorker?
+	private var sessionId: Int!
 	
 	init(workspace: Workspace, settings: AppSettings) {
 		self.workspace = workspace
@@ -27,19 +28,30 @@ class Session {
 	}
 	
 	public func startSession() throws {
+		do {
+			sessionId = try settings.dao.createSessionRecord(wspaceId: workspace.id)
+		} catch {
+			Log.logger.error(message: "failed to create session record \(error)", true)
+			throw error
+		}
 		let net = NetTCP()
 		do {
 			try net.connect(address: settings.config.computeHost, port: settings.config.computePort, timeoutSeconds: settings.config.computeTimeout)
 			{ socket in
 				guard let socket = socket else { fatalError() }
 				Log.logger.info(message: "connected to compute server", true)
-				self.rclient = ComputeWorker(socket: socket, settings: self.settings, delegate: self)
+				self.rclient = ComputeWorker(workspace: self.workspace, sessionId: self.sessionId, socket: socket, settings: self.settings, delegate: self)
 				self.rclient?.start()
 			}
 		} catch {
 			Log.logger.error(message: "failed to connect to compute engine", true)
 			throw error
 		}
+	}
+	
+	public func shutdown() throws {
+		try rclient?.shutdown()
+		sockets.removeAll()
 	}
 	
 	/// Hashable implementation
