@@ -105,13 +105,11 @@ public class ComputeWorker {
 	}
 	
 	private func verifyMagicHeader(bytes: [UInt8]) throws -> Int {
-		let valArray = bytes.withUnsafeBufferPointer { buffer in
-			buffer.baseAddress!.withMemoryRebound(to: Array<UInt32>.self, capacity: 2) {
-				return $0.pointee
-			}
-		}
-		guard UInt32(bigEndian: valArray[0]) == 0x21 else { throw ComputeError.invalidHeader }
-		return Int(UInt32(bigEndian: valArray[1]))
+		let (header, dataLen) = UnsafePointer<UInt8>(bytes).withMemoryRebound(to: UInt32.self, capacity: 2) { return (UInt32(bigEndian: $0.pointee), UInt32(bigEndian: $0.advanced(by: 1).pointee))}
+		// tried all kinds of withUnsafePointer & withMemoryRebound and could not figure it out.
+		Log.logger.info(message: "compute sent \(dataLen) worth of json", true)
+		guard header == 0x21 else { throw ComputeError.invalidHeader }
+		return Int(dataLen)
 	}
 
 	fileprivate func valueByteArray<T>(_ value:T) -> [UInt8] {

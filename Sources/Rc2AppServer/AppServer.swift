@@ -94,6 +94,7 @@ open class AppServer {
 		} catch PerfectError.networkError(let err, let msg) {
 			print("Network error thrown: \(err) \(msg)")
 		} catch {
+			print("unknown error: \(error)")
 		}
 	}
 }

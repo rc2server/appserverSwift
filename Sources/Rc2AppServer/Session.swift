@@ -148,7 +148,8 @@ extension Session: SessionSocketDelegate {
 // MARK: compute delegate
 extension Session: ComputeWorkerDelegate {
 	func handleCompute(data: Data) {
-		print("got \(data.count) bytes")
+		let str = String(data: data, encoding: .utf8)
+		print("got \(data.count) bytes: \(str)")
 	}
 	
 	func handleCompute(error: ComputeError) {

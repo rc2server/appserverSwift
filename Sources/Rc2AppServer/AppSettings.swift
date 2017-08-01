@@ -77,6 +77,8 @@ public struct AppSettings {
 		public let computePort: UInt16
 		/// Seconds to wait for a connection to the compute engine to open. Defaults to 4. -1 means no timeout.
 		public let computeTimeout: Double
+		/// The db host name to send to the compute server (which because of dns can be different)
+		public let computeDbHost: String
 		
 		enum CodingKeys: String, CodingKey {
 			case dbHost
@@ -85,6 +87,7 @@ public struct AppSettings {
 			case computeHost
 			case computePort
 			case computeTimeout
+			case computeDbHost
 		}
 		
 		/// Initializes from serialization.
@@ -98,6 +101,8 @@ public struct AppSettings {
 			computeHost = try container.decodeIfPresent(String.self, forKey: .computeHost) ?? "compute"
 			computePort = try container.decodeIfPresent(UInt16.self, forKey: .computePort) ?? 7714
 			computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
+			let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
+			computeDbHost = cdb == nil ? dbHost : cdb!
 		}
 	}
 }
