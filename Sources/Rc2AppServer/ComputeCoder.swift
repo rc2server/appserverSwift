@@ -7,7 +7,7 @@
 import Foundation
 
 /// object to transform data send/received from the compute engine
-class ComputeCommand {
+class ComputeCoder {
 	// MARK: - properties
 	private let encoder = JSONEncoder()
 	private var nextQueryId: Int = 1

@@ -32,7 +32,7 @@ public class ComputeWorker {
 	private(set) weak var delegate: ComputeWorkerDelegate?
 	private let encoder = JSONEncoder()
 	private let decoder = JSONDecoder()
-	private let compute = ComputeCommand()
+	private let compute = ComputeCoder()
 	
 	public init(workspace: Workspace, sessionId: Int, socket: NetTCP, settings: AppSettings, delegate: ComputeWorkerDelegate) {
 		self.workspace = workspace

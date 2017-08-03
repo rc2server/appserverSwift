@@ -18,7 +18,7 @@ class Session {
 	private(set) var sockets = Set<SessionSocket>()
 	/// allows whatever caches sessions to know when this session
 	private(set) var lastClientDisconnectTime: Date?
-	private var rclient: ComputeWorker?
+	private var worker: ComputeWorker?
 	private var sessionId: Int!
 	
 	// MARK: - initialization/startup
@@ -42,8 +42,8 @@ class Session {
 			{ socket in
 				guard let socket = socket else { fatalError() }
 				Log.logger.info(message: "connected to compute server", true)
-				self.rclient = ComputeWorker(workspace: self.workspace, sessionId: self.sessionId, socket: socket, settings: self.settings, delegate: self)
-				self.rclient?.start()
+				self.worker = ComputeWorker(workspace: self.workspace, sessionId: self.sessionId, socket: socket, settings: self.settings, delegate: self)
+				self.worker?.start()
 			}
 		} catch {
 			Log.logger.error(message: "failed to connect to compute engine", true)
@@ -52,7 +52,7 @@ class Session {
 	}
 	
 	public func shutdown() throws {
-		try rclient?.shutdown()
+		try worker?.shutdown()
 		sockets.removeAll()
 	}
 	
