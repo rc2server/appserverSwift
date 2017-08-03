@@ -48,7 +48,7 @@ public class ComputeWorker {
 	
 	public func start() {
 		do {
-			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: settings.config.dbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName))
+			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: settings.config.computeDbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName))
 		} catch {
 			Log.logger.error(message: "Error opening compute connection: \(error)", true)
 			// TODO close Session and tell client
