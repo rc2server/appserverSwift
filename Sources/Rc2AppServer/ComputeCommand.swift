@@ -8,11 +8,13 @@ import Foundation
 
 /// object to transform data send/received from the compute engine
 class ComputeCommand {
+	// MARK: - properties
 	private let encoder = JSONEncoder()
 	private var nextQueryId: Int = 1
 	private var transactionIds = [String: Int]()
 	private let queue = DispatchQueue(label: "ComputeCommand Queue")
 	
+	// MARK: - initialization
 	/// creates an object that generates the for commands to send to the compute engine
 	init() {
 		encoder.dataEncodingStrategy = .base64
@@ -20,6 +22,7 @@ class ComputeCommand {
 		encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
 	}
 	
+	// MARK: - request methods
 	/// Create the data to request a variable's value
 	/// 
 	/// - Parameter name: The name of the variable to get
@@ -97,6 +100,7 @@ class ComputeCommand {
 		return try encoder.encode(OpenCommand(wspaceId: wspaceId, sessionRecId: sessionId, dbhost: dbhost, dbuser: dbuser, dbname: dbname))
 	}
 	
+	// MARK: - internal methods
 	private func createQueryId(_ transactionId: String) -> Int {
 		var qid: Int = 0
 		queue.sync {
@@ -107,6 +111,7 @@ class ComputeCommand {
 		return qid
 	}
 	
+	// MARK: - private structs for command serialization
 	private struct OpenCommand: Encodable {
 		let msg = "open"
 		let argument = ""

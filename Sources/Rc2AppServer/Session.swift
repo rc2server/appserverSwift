@@ -11,7 +11,7 @@ import servermodel
 import PerfectNet
 
 class Session {
-	
+	// MARK: - properties
 	let workspace: Workspace
 	let settings: AppSettings
 	private let lockQueue: DispatchQueue
@@ -20,6 +20,8 @@ class Session {
 	private(set) var lastClientDisconnectTime: Date?
 	private var rclient: ComputeWorker?
 	private var sessionId: Int!
+	
+	// MARK: - initialization/startup
 	
 	init(workspace: Workspace, settings: AppSettings) {
 		self.workspace = workspace
@@ -53,6 +55,8 @@ class Session {
 		try rclient?.shutdown()
 		sockets.removeAll()
 	}
+	
+	// MARK: - Hashable/Equatable
 	
 	/// Hashable implementation
 	var hashValue: Int { return ObjectIdentifier(self).hashValue }
@@ -148,8 +152,9 @@ extension Session: SessionSocketDelegate {
 // MARK: compute delegate
 extension Session: ComputeWorkerDelegate {
 	func handleCompute(data: Data) {
-		let str = String(data: data, encoding: .utf8)
-		print("got \(data.count) bytes: \(str)")
+		if let str = String(data: data, encoding: .utf8) {
+			Log.logger.info(message: "got \(data.count) bytes: \(str)", true)
+		}
 	}
 	
 	func handleCompute(error: ComputeError) {
