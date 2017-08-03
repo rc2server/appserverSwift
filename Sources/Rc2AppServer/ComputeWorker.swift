@@ -15,6 +15,7 @@ public enum ComputeError: Error {
 	case invalidHeader
 	case failedToReadMessage
 	case failedToWrite
+	case invalidFormat
 	case unknown
 }
 

@@ -3,4 +3,5 @@ import XCTest
 
 XCTMain([
     testCase(appserverlibTests.allTests),
+    testCase(ComputeCoderTests.alltests)
 ])
