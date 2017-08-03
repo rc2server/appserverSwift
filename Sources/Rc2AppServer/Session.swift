@@ -19,7 +19,9 @@ class Session {
 	/// allows whatever caches sessions to know when this session
 	private(set) var lastClientDisconnectTime: Date?
 	private var worker: ComputeWorker?
+	private let coder: ComputeCoder
 	private var sessionId: Int!
+	private var isOpen: Bool = false
 	
 	// MARK: - initialization/startup
 	
@@ -27,6 +29,7 @@ class Session {
 		self.workspace = workspace
 		self.settings = settings
 		self.lockQueue = DispatchQueue(label: "workspace \(workspace.id)")
+		coder = ComputeCoder()
 	}
 	
 	public func startSession() throws {
@@ -75,7 +78,9 @@ extension Session {
 	func broadcastToAllClients<T: Encodable>(object: T) {
 		do {
 			let data = try settings.encode(object)
-			sockets.forEach { $0.send(data: data) { () in } }
+			lockQueue.sync {
+				sockets.forEach { $0.send(data: data) { () in } }
+			}
 		} catch {
 			Log.logger.warning(message: "error sending to all client (\(error))", true)
 		}
@@ -149,29 +154,32 @@ extension Session: SessionSocketDelegate {
 	}
 }
 
-// MARK: compute delegate
-extension Session: ComputeWorkerDelegate {
-	func handleCompute(data: Data) {
-		if let str = String(data: data, encoding: .utf8) {
-			Log.logger.info(message: "got \(data.count) bytes: \(str)", true)
-		}
-	}
-	
-	func handleCompute(error: ComputeError) {
-		Log.logger.error(message: "got error from compute engine \(error)", true)
-	}
-}
-
 // MARK: - Command Handling
 extension Session {
 	private func handleExecute(params: SessionCommand.ExecuteParams) {
 		if params.isUserInitiated {
 			broadcastToAllClients(object: SessionResponse.echoExecute(SessionResponse.ExecuteData(transactionId: params.transactionId, source: params.source)))
 		}
+		do {
+			let data = try coder.executeScript(transactionId: params.transactionId, script: params.source)
+			try lockQueue.sync {
+				try worker?.send(data: data)
+			}
+		} catch {
+			Log.logger.info(message: "error handling execute", true)
+		}
 	}
 	
 	private func handleExecuteFile(params: SessionCommand.ExecuteFileParams) {
-		
+		broadcastToAllClients(object: SessionResponse.echoExecuteFile(SessionResponse.ExecuteFileData(transactionId: params.transactionId, fileId: params.fileId, fileVersion: params.fileVersion)))
+		do {
+			let data = try coder.executeFile(transactionId: params.transactionId, fileId: params.fileId, fileVersion: params.fileVersion)
+			try lockQueue.sync {
+				try worker?.send(data: data)
+			}
+		} catch {
+			Log.logger.info(message: "error handling execute", true)
+		}
 	}
 
 	private func handleFileOperation(params: SessionCommand.FileOperationParams) {
@@ -194,3 +202,102 @@ extension Session {
 		
 	}
 }
+
+// MARK: - compute delegate
+extension Session: ComputeWorkerDelegate {
+	/// handles a message from the compute engine
+	/// - Parameter data: The binary message from the server
+	func handleCompute(data: Data) {
+		if let str = String(data: data, encoding: .utf8) {
+			Log.logger.info(message: "got \(data.count) bytes: \(str)", true)
+		}
+		do {
+			let response = try coder.parseResponse(data: data)
+			switch response {
+			case .open(success: let success, errorMessage: let errMsg):
+				handleOpenResponse(success: success, errorMessage: errMsg)
+			case .execComplete(let execData):
+				handleExecComplete(data: execData)
+			case .error(let data):
+				handleErrorResponse(data: data)
+			case .help(topic: let topic, paths: let paths):
+				handleHelpResponse(topic: topic, paths: paths)
+			case .results(let data):
+				handleResultsResponse(data: data)
+			case .showFile(let data):
+				handleShowFileResponse(data: data)
+			case .variableValue(name: let name, value: let value):
+				handleVariableValueResponse(name: name, value: value)
+			case .variables(data: let data, isDelta: let delta):
+				handleVariableListResponse(data: data, isDelta: delta)
+			}
+		} catch {
+			Log.logger.error(message: "failed to parse response from data", true)
+		}
+	}
+	
+	/// Handle an error while processing data from the compute engine
+	/// - Parameter error: the local error code
+	func handleCompute(error: ComputeError) {
+		Log.logger.error(message: "got error from compute engine \(error)", true)
+	}
+}
+
+// MARK: - response handling
+extension Session {
+	func handleOpenResponse(success: Bool, errorMessage: String?) {
+		isOpen = success
+		if !success, let err = errorMessage {
+			Log.logger.error(message: "Error opening compute connection: \(err)", true)
+			broadcastToAllClients(object: SessionError.failedToConnectToCompute)
+		}
+	}
+	
+	func handleExecComplete(data: ComputeCoder.ExecCompleteData) {
+		
+	}
+	
+	func handleResultsResponse(data: ComputeCoder.ResultsData) {
+		
+	}
+	
+	func handleShowFileResponse(data: ComputeCoder.ShowFileData) {
+		
+	}
+	
+	// path values of the format "/usr/lib/R/library/stats/help/Normal"
+	func handleHelpResponse(topic: String, paths: [String]) {
+		var outPaths = [String: String]()
+		paths.forEach { value in
+			if let rng = value.range(of: "/library/") {
+				//strip off everything before "/library"
+				let idx = value.index(rng.upperBound, offsetBy: -1)
+				var aPath = value.substring(from: idx)
+				//replace "help" with "html"
+				aPath = aPath.replacingOccurrences(of: "/help/", with: "/html/")
+				aPath.append(".html") // add file extension
+				// split components
+				var components = value.split(separator: "/")
+				let funName = components.last!
+				let pkgName = components.count > 3 ? components[components.count - 3] : "Base"
+				let title = funName + " (" + pkgName + ")"
+				//add to outPaths with the display title as key, massaged path as value
+				outPaths[title] = aPath
+			}
+		}
+		broadcastToAllClients(object: SessionResponse.HelpData(topic: topic, items: outPaths))
+	}
+	
+	func handleVariableValueResponse(name: String, value: Any?) {
+		
+	}
+	
+	func handleVariableListResponse(data: [String: Any], isDelta: Bool) {
+		
+	}
+	
+	func handleErrorResponse(data: ComputeCoder.ErrorData) {
+		
+	}
+}
+

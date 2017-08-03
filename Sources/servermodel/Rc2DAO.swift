@@ -14,7 +14,7 @@ open class Rc2DAO {
 		case queryFailed
 	}
 	
-	private(set) var pgdb: PostgreSQL.Database!
+	private(set) var pgdb: PostgreSQL.Database?
 	// queue is used by internal methods all database calls evenetually use
 	let queue: DispatchQueue
 	
@@ -28,7 +28,7 @@ open class Rc2DAO {
 	}
 	
 	public func createTokenDAO() -> LoginTokenDAO {
-		precondition(pgdb != nil)
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
 		return LoginTokenDAO(database: pgdb)
 	}
 	
@@ -39,7 +39,6 @@ open class Rc2DAO {
 	/// - Returns: the requested user info
 	/// - Throws: any errors from communicating with the database server
 	public func getUserInfo(user: User) throws -> BulkUserInfo {
-		precondition(pgdb != nil)
 		let projects = try getProjects(ownedBy: user)
 		var wspaceDict = [Int: [Workspace]]()
 		var fileDict = [Int: [File]]()
@@ -93,8 +92,8 @@ open class Rc2DAO {
 	/// - Returns: user if the login/password are valid, nil if user not found
 	/// - Throws: node errors 
 	public func getUser(login: String, password: String, connection: Connection? = nil) throws -> User? {
-		precondition(pgdb != nil)
-		let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		let conn = connection == nil ? try pgdb.makeConnection() : connection!
 		var query = "select * from rcuser where login = $1"
 		var data = [login]
 		if password.characters.count == 0 {
@@ -111,8 +110,8 @@ open class Rc2DAO {
 	}
 	
 	public func createSessionRecord(wspaceId: Int) throws -> Int {
-		precondition(pgdb != nil)
-		let conn = try self.pgdb.makeConnection()
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		let conn = try pgdb.makeConnection()
 		let query = "insert into sessionrecord (wspaceid) values ($1) returning id"
 		let result = try conn.execute(query, [wspaceId])
 		guard let array = result.array, array.count == 1 else {
@@ -122,8 +121,8 @@ open class Rc2DAO {
 	}
 	
 	public func closeSessionRecord(sessionId: Int) throws {
-		precondition(pgdb != nil)
-		let conn = try self.pgdb.makeConnection()
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		let conn = try pgdb.makeConnection()
 		let query = "update sessionrecord set closeDate = now() where id = $1"
 		_ = try conn.execute(query, [sessionId])
 	}
@@ -220,10 +219,10 @@ open class Rc2DAO {
 	//MARK: - private methods
 	private func getSingleRow(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> Node?
 	{
-		precondition(pgdb != nil)
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
 		var finalResults: Node? = nil
 		try queue.sync { () throws -> Void in
-			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
+			let conn = connection == nil ? try pgdb.makeConnection() : connection!
 			let result = try conn.execute("select * from \(tableName) where \(keyName) = $1", [keyValue])
 			guard let array = result.array else { return }
 			switch array.count {
@@ -240,10 +239,10 @@ open class Rc2DAO {
 	
 	private func getRows(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> [Node]
 	{
-		precondition(pgdb != nil)
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
 		var finalResults: [Node] = []
 		try queue.sync  { () throws -> Void in
-			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
+			let conn = connection == nil ? try pgdb.makeConnection() : connection!
 			let result = try conn.execute("select * from \(tableName) where \(keyName) = $1", [keyValue])
 			guard let array = result.array, array.count > 0 else {
 				return
@@ -254,10 +253,10 @@ open class Rc2DAO {
 	}
 	
 	private func getRows(query: String, connection: Connection? = nil) throws -> [Node] {
-		precondition(pgdb != nil)
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
 		var finalResults: [Node] = []
 		try queue.sync  { () throws -> Void in
-			let conn = connection == nil ? try self.pgdb.makeConnection() : connection!
+			let conn = connection == nil ? try pgdb.makeConnection() : connection!
 			let result = try conn.execute(query)
 			guard let array = result.array, array.count > 0 else {
 				return

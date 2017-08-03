@@ -64,7 +64,7 @@ class ComputeCoderTests: XCTestCase {
 	func testExecuteFile() {
 		let fileId = 23
 		let tid = "foo2"
-		let data = try! coder.executeFile(transactionId: tid, fileId: fileId)
+		let data = try! coder.executeFile(transactionId: tid, fileId: fileId, fileVersion: 2)
 		let json = try! JSON(data: data)
 		XCTAssertEqual(try! json.getString(at: "msg"), "execFile")
 		XCTAssertEqual(try! json.getInt(at: "clientData", "fileId"), fileId)

@@ -13,7 +13,7 @@ public struct AppSettings {
 	/// The data access object for retrieving objects from the database.
 	public let dao: Rc2DAO
 	/// Constants read from "config.json" in `dataDirURL`.
-	public let config: Configuration
+	public let config: AppConfiguration
 	/// the encoder used, implementation detail.
 	private let encoder: JSONEncoder
 	/// the decoder used, implementation detail.
@@ -22,8 +22,9 @@ public struct AppSettings {
 	/// Initializes from parameters and `config.json`
 	/// 
 	/// - Parameter dataDirURL: URL containing resources used by the application.
+	/// - Parameter configData: JSON data for configuration. If nil, will read it from dataDirURL.
 	/// - Parameter dao: The Data Access Object used to retrieve model objects from the database.
-	init(dataDirURL: URL, dao: Rc2DAO) {
+	init(dataDirURL: URL, configData: Data? = nil, dao: Rc2DAO) {
 		self.dataDirURL = dataDirURL
 		self.dao = dao
 
@@ -38,8 +39,8 @@ public struct AppSettings {
 
 		do {
 			let configUrl = dataDirURL.appendingPathComponent("config.json")
-			let configData = try Data(contentsOf: configUrl)
-			config = try decoder.decode(Configuration.self, from: configData)
+			let data = configData != nil ? configData! : try Data(contentsOf: configUrl)
+			config = try decoder.decode(AppConfiguration.self, from: data)
 		} catch {
 			fatalError("failed to load config file \(error)")
 		}
@@ -63,46 +64,47 @@ public struct AppSettings {
 		return try decoder.decode(T.self, from: data)
 	}
 	
-	/// Basic information used throughout the application. Meant to be read from config file.
-	public struct Configuration: Decodable {
-		/// The database host name to connect to. Defaults to "dbserver".
-		public let dbHost: String
-		/// The database port to connect to. Defaults to 5432.
-		public let dbUser: String
-		/// The name of the user to connect as. Defaults to "rc2".
-		public let dbName: String
-		/// The host name of the compute engine. Defaults to "compute".
-		public let computeHost: String
-		/// The port of the compute engine. Defaults to 7714.
-		public let computePort: UInt16
-		/// Seconds to wait for a connection to the compute engine to open. Defaults to 4. -1 means no timeout.
-		public let computeTimeout: Double
-		/// The db host name to send to the compute server (which because of dns can be different)
-		public let computeDbHost: String
-		
-		enum CodingKeys: String, CodingKey {
-			case dbHost
-			case dbUser
-			case dbName
-			case computeHost
-			case computePort
-			case computeTimeout
-			case computeDbHost
-		}
-		
-		/// Initializes from serialization.
-		///
-		/// - Parameter from: The decoder to deserialize from.
-		public init(from cdecoder: Decoder) throws {
-			let container = try cdecoder.container(keyedBy: CodingKeys.self)
-			dbHost = try container.decodeIfPresent(String.self, forKey: .dbHost) ?? "dbserver"
-			dbUser = try container.decodeIfPresent(String.self, forKey: .dbUser) ?? "rc2"
-			dbName = try container.decodeIfPresent(String.self, forKey: .dbName) ?? "rc2"
-			computeHost = try container.decodeIfPresent(String.self, forKey: .computeHost) ?? "compute"
-			computePort = try container.decodeIfPresent(UInt16.self, forKey: .computePort) ?? 7714
-			computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
-			let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
-			computeDbHost = cdb == nil ? dbHost : cdb!
-		}
+}
+
+/// Basic information used throughout the application. Meant to be read from config file.
+public struct AppConfiguration: Decodable {
+	/// The database host name to connect to. Defaults to "dbserver".
+	public let dbHost: String
+	/// The database port to connect to. Defaults to 5432.
+	public let dbUser: String
+	/// The name of the user to connect as. Defaults to "rc2".
+	public let dbName: String
+	/// The host name of the compute engine. Defaults to "compute".
+	public let computeHost: String
+	/// The port of the compute engine. Defaults to 7714.
+	public let computePort: UInt16
+	/// Seconds to wait for a connection to the compute engine to open. Defaults to 4. -1 means no timeout.
+	public let computeTimeout: Double
+	/// The db host name to send to the compute server (which because of dns can be different)
+	public let computeDbHost: String
+	
+	enum CodingKeys: String, CodingKey {
+		case dbHost
+		case dbUser
+		case dbName
+		case computeHost
+		case computePort
+		case computeTimeout
+		case computeDbHost
+	}
+	
+	/// Initializes from serialization.
+	///
+	/// - Parameter from: The decoder to deserialize from.
+	public init(from cdecoder: Decoder) throws {
+		let container = try cdecoder.container(keyedBy: CodingKeys.self)
+		dbHost = try container.decodeIfPresent(String.self, forKey: .dbHost) ?? "dbserver"
+		dbUser = try container.decodeIfPresent(String.self, forKey: .dbUser) ?? "rc2"
+		dbName = try container.decodeIfPresent(String.self, forKey: .dbName) ?? "rc2"
+		computeHost = try container.decodeIfPresent(String.self, forKey: .computeHost) ?? "compute"
+		computePort = try container.decodeIfPresent(UInt16.self, forKey: .computePort) ?? 7714
+		computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
+		let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
+		computeDbHost = cdb == nil ? dbHost : cdb!
 	}
 }

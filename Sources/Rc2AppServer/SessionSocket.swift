@@ -23,7 +23,7 @@ class SessionSocket: Hashable {
 	let delegate: SessionSocketDelegate
 	weak var session: Session?
 	
-	init(socket: WebSocket, user: User, settings: AppSettings, delegate: SessionSocketDelegate) {
+	required init(socket: WebSocket, user: User, settings: AppSettings, delegate: SessionSocketDelegate) {
 		self.socket = socket
 		self.user = user
 		self.settings = settings
@@ -66,8 +66,8 @@ class SessionSocket: Hashable {
 		}
 	}
 	
-	/// process bytes received from the network
-	private func handle(bytes: [UInt8]?) {
+	/// process bytes received from the network. only internal access control to allow for unit tests
+	func handle(bytes: [UInt8]?) {
 		guard let bytes = bytes else { return }
 		//process bytes
 		let data = Data(bytes)

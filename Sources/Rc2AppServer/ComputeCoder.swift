@@ -67,8 +67,8 @@ class ComputeCoder {
 	/// - Parameter transactionId: The unique transactionId
 	/// - Parameter fileId: The id of the file to execute
 	/// - Returns: data to send to compute server
-	func executeFile(transactionId: String, fileId: Int) throws -> Data {
-		return try encoder.encode(ExecuteFile(fileId: fileId, queryId: createQueryId(transactionId)))
+	func executeFile(transactionId: String, fileId: Int, fileVersion: Int) throws -> Data {
+		return try encoder.encode(ExecuteFile(fileId: fileId, fileVersion: fileVersion, queryId: createQueryId(transactionId)))
 	}
 	
 	/// Create the data to toggle variable watching
@@ -256,11 +256,12 @@ class ComputeCoder {
 		let queryId: Int
 		let clientData: [String: Int]
 		
-		init(fileId: Int, queryId: Int) {
+		init(fileId: Int, fileVersion: Int, queryId: Int) {
 			argument = "\(fileId)"
 			self.queryId = queryId
 			var cdata = [String: Int]()
 			cdata["fileId"] = fileId
+			cdata["fileVersion"] = fileVersion
 			clientData = cdata
 		}
 	}
