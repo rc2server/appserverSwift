@@ -58,8 +58,8 @@ class ComputeCoder {
 	/// - Parameter transactionId: The unique transactionId
 	/// - Parameter query: The query to execute
 	/// - Returns: data to send to compute server
-	func executeScript(transactionId: String, query: String) throws -> Data {
-		return try encoder.encode(ExecuteQuery(queryId: createQueryId(transactionId), script: query))
+	func executeScript(transactionId: String, script: String) throws -> Data {
+		return try encoder.encode(ExecuteQuery(queryId: createQueryId(transactionId), script: script))
 	}
 	
 	/// Create the data to execute a file

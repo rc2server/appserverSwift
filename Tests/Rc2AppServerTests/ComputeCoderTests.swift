@@ -15,14 +15,101 @@ class ComputeCoderTests: XCTestCase {
 		("testErrorMalformed", testErrorMalformed),
 		("testBasicExecFile", testBasicExecFile),
 		("testResults", testResults),
-		("testShowOutput", testShowOutput),
+		("testHelp", testHelp),
+		("testOpen", testOpen),
+		("testClose", testClose),
+		("testHelp", testHelp),
+		("testGetVariable", testGetVariable),
+		("testSaveEnvironment", testSaveEnvironment),
+		("testExecuteFile", testExecuteFile),
+		("testExecuteScript", testExecuteScript),
+		("testToggleWatch", testToggleWatch),
+		("testListVariables", testListVariables),
 		]
 
 	override func setUp() {
 		coder = ComputeCoder()
 	}
 	
-	// MARK: - tests
+	// MARK: - request tests
+	func testGetVariable() {
+		let data = try! coder.getVariable(name: "foo123")
+		let json = try! JSON(data: data)
+		XCTAssertEqual(try! json.getString(at: "msg"), "getVariable")
+		XCTAssertEqual(try! json.getString(at: "argument"), "foo123")
+	}
+	
+	func testHelp() {
+		let data = try! coder.help(topic: "rnorm")
+		let json = try! JSON(data: data)
+		XCTAssertEqual(try! json.getString(at: "msg"), "help")
+		XCTAssertEqual(try! json.getString(at: "argument"), "rnorm")
+	}
+	
+	func testSaveEnvironment() {
+		let data = try! coder.saveEnvironment()
+		let json = try! JSON(data: data)
+		XCTAssertEqual(try! json.getString(at: "msg"), "saveEnv")
+	}
+	
+	func testExecuteScript() {
+		let tid = "foo1"
+		let script = "rnorm(20)"
+		let data = try! coder.executeScript(transactionId: tid, script: script)
+		let json = try! JSON(data: data)
+		XCTAssertEqual(try! json.getString(at: "msg"), "execScript")
+		XCTAssertEqual(try! json.getString(at: "argument"), script)
+	}
+	
+	func testExecuteFile() {
+		let fileId = 23
+		let tid = "foo2"
+		let data = try! coder.executeFile(transactionId: tid, fileId: fileId)
+		let json = try! JSON(data: data)
+		XCTAssertEqual(try! json.getString(at: "msg"), "execFile")
+		XCTAssertEqual(try! json.getInt(at: "clientData", "fileId"), fileId)
+	}
+
+	func testToggleWatch() {
+		let data = try! coder.toggleVariableWatch(enable: true)
+		let json = try! JSON(data: data)
+		XCTAssertEqual(try! json.getString(at: "msg"), "toggleVariableWatch")
+		XCTAssertEqual(try! json.getString(at: "argument"), "")
+		XCTAssertEqual(try! json.getBool(at: "watch"), true)
+	}
+	
+	func testClose() {
+		let data = try! coder.close()
+		let json = try! JSON(data: data)
+		XCTAssertEqual(try! json.getString(at: "msg"), "close")
+		XCTAssertEqual(try! json.getString(at: "argument"), "")
+	}
+	
+	func testListVariables() {
+		let data = try! coder.listVariables(deltaOnly: true)
+		let json = try! JSON(data: data)
+		XCTAssertEqual(try! json.getBool(at: "delta"), true)
+		XCTAssertEqual(try! json.getString(at: "msg"), "listVariables")
+		XCTAssertEqual(try! json.getString(at: "argument"), "")
+	}
+	
+	func testOpen() {
+		let wspaceId = 101
+		let sessionId = 22012
+		let dbHost = "dbserver"
+		let dbUser = "rc2"
+		let dbName = "rc2d"
+		let data = try! coder.openConnection(wspaceId: wspaceId, sessionId: sessionId, dbhost: dbHost, dbuser: dbUser, dbname: dbName)
+		let json = try! JSON(data: data)
+		XCTAssertEqual(try! json.getString(at: "msg"), "open")
+		XCTAssertEqual(try! json.getInt(at: "wspaceId"), wspaceId)
+		XCTAssertEqual(try! json.getInt(at: "sessionRecId"), sessionId)
+		XCTAssertEqual(try! json.getString(at: "dbhost"), dbHost)
+		XCTAssertEqual(try! json.getString(at: "dbuser"), dbUser)
+		XCTAssertEqual(try! json.getString(at: "dbname"), dbName)
+	}
+	
+	// MARK: - Response tests
 	func testOpenSuccess() {
 		let openJson = """
 	{"msg": "openresponse", "success": true }
@@ -140,8 +227,9 @@ class ComputeCoderTests: XCTestCase {
 	
 	// TODO: add tests for variableValue and variables when those responses are properly handled
 	
+	// MARK: - helper methods
 	private func queryId(for transId: String) -> Int {
-		let reqData = try! coder.executeScript(transactionId: transId, query: "rnorm(20)")
+		let reqData = try! coder.executeScript(transactionId: transId, script: "rnorm(20)")
 		let reqJson = try! JSON(data: reqData)
 		return try! reqJson.getInt(at: "queryId")
 	}
