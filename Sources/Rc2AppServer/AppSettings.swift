@@ -82,6 +82,8 @@ public struct AppConfiguration: Decodable {
 	public let computeTimeout: Double
 	/// The db host name to send to the compute server (which because of dns can be different)
 	public let computeDbHost: String
+	/// The largest amount of file data to return over the websocket. Anything higher should be fetched via REST. In KB
+	public let maximumWebSocketFileSizeKB: Int
 	
 	enum CodingKeys: String, CodingKey {
 		case dbHost
@@ -91,6 +93,7 @@ public struct AppConfiguration: Decodable {
 		case computePort
 		case computeTimeout
 		case computeDbHost
+		case maximumWebSocketFileSizeKB
 	}
 	
 	/// Initializes from serialization.
@@ -106,5 +109,7 @@ public struct AppConfiguration: Decodable {
 		computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
 		let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
 		computeDbHost = cdb == nil ? dbHost : cdb!
+		// default to 5 MB
+		maximumWebSocketFileSizeKB = try container.decodeIfPresent(Int.self, forKey: .maximumWebSocketFileSizeKB) ?? 1024 * 5
 	}
 }
