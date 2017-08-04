@@ -6,6 +6,7 @@
 
 import Foundation
 import PerfectLib
+import Rc2Model
 
 /// object to transform data send/received from the compute engine
 class ComputeCoder {
@@ -155,7 +156,8 @@ class ComputeCoder {
 			return Response.help(topic: topic, paths: paths)
 		case "error":
 			guard let code = json["errorCode"] as? Int else { throw ComputeError.invalidFormat }
-			return Response.error(ErrorData(code: code, details: json["errorDetails"] as? String, transactionId: transId))
+			let ecode = SessionErrorCode(rawValue: code) ?? SessionErrorCode.unknown
+			return Response.error(ErrorData(code: ecode, details: json["errorDetails"] as? String, transactionId: transId))
 		default:
 			Log.logger.error(message: "unknown response from compute engine: \(msg)", true)
 			throw ComputeError.invalidFormat
@@ -175,7 +177,7 @@ class ComputeCoder {
 	}
 	
 	struct ErrorData {
-		let code: Int
+		let code: SessionErrorCode
 		let details: String?
 		let transactionId: String?
 	}
