@@ -34,7 +34,7 @@ class AuthRequestFilter: HTTPRequestFilter {
 		//extract the bearer token
 		let prefix = "Bearer "
 		let tokenIndex = rawHeader.index(rawHeader.startIndex, offsetBy: prefix.characters.count)
-		let token = rawHeader.substring(from: tokenIndex)
+		let token = String(rawHeader[tokenIndex...])
 		print("token \(token)")
 		// parse and verify the token
 		guard let verifier = JWTVerifier(token),

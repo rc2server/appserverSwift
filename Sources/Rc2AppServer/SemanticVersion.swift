@@ -6,6 +6,14 @@
 
 import Foundation
 
+extension String {
+	/// retarded change in Swift 4 doesn't allow creating an optional string from an optional substring
+	init?(_ substr: Substring?) {
+		guard let ss = substr else { return nil }
+		self.init(ss)
+	}
+}
+
 struct SemanticVersion {
 	let major: Int
 	let minor: Int
@@ -17,10 +25,10 @@ struct SemanticVersion {
 		case invalidString
 	}
 	
-	private static func substring(string: String, nsRange: NSRange) -> String? {
+	private static func substring(string: String, nsRange: NSRange) -> Substring? {
 		guard nsRange.length > 0 else { return nil }
 		guard let srange = Range(nsRange, in: string) else { return nil }
-		return string.substring(with: srange)
+		return string[srange]
 	}
 	
 	init(major: Int, minor: Int, patch: Int, prerelease: String?, build: String?) {
@@ -39,18 +47,18 @@ struct SemanticVersion {
 			let match = regex.firstMatch(in: string, options: [], range: range),
 			let majorNSRange = Optional.some(match.range(at: 1)), majorNSRange.length > 0,
 			let majorRange = Range(majorNSRange, in: string),
-			let major = Int(string.substring(with: majorRange)),
+			let major = Int(string[majorRange]),
 			let minorNSRange = Optional.some(match.range(at: 2)), minorNSRange.length > 0,
 			let minorRange = Range(minorNSRange, in: string),
-			let minor = Int(string.substring(with: minorRange)),
+			let minor = Int(string[minorRange]),
 			let patchNSRange = Optional.some(match.range(at: 3)), patchNSRange.length > 0,
 			let patchRange = Range(patchNSRange, in: string),
-			let patch = Int(string.substring(with: patchRange))
+			let patch = Int(string[patchRange])
 			else {
 				throw Errors.invalidString
 		}
-		var build: String? = nil
-		var prerelease: String? = nil
+		var build: Substring? = nil
+		var prerelease: Substring? = nil
 		if match.numberOfRanges > 4 {
 			//there is both build and prerelease
 			prerelease = SemanticVersion.substring(string: string, nsRange: match.range(at: 4))
@@ -59,13 +67,15 @@ struct SemanticVersion {
 			guard let extraStr = SemanticVersion.substring(string: string, nsRange: match.range(at: 4)) else { throw Errors.invalidString }
 			switch extraStr[extraStr.startIndex] {
 			case "-":
-				prerelease = extraStr.substring(from: extraStr.index(after: extraStr.startIndex))
+				let start = extraStr.index(after: extraStr.startIndex)
+				prerelease = extraStr[start...]
 			case "+":
-				build = extraStr.substring(from: extraStr.index(after: extraStr.startIndex))
+				let start = extraStr.index(after: extraStr.startIndex)
+				build = extraStr[start...]
 			default:
 				throw Errors.invalidString
 			}
 		}
-		self = SemanticVersion(major: major, minor: minor, patch: patch, prerelease: prerelease, build: build)
+		self = SemanticVersion(major: major, minor: minor, patch: patch, prerelease: String(prerelease), build: String(build))
 	}
 }

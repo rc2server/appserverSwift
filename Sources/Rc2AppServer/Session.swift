@@ -272,7 +272,7 @@ extension Session {
 			if let rng = value.range(of: "/library/") {
 				//strip off everything before "/library"
 				let idx = value.index(rng.upperBound, offsetBy: -1)
-				var aPath = value.substring(from: idx)
+				var aPath = String(value[idx...])
 				//replace "help" with "html"
 				aPath = aPath.replacingOccurrences(of: "/help/", with: "/html/")
 				aPath.append(".html") // add file extension
