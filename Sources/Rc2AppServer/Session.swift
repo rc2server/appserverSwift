@@ -218,8 +218,8 @@ extension Session: ComputeWorkerDelegate {
 				handleOpenResponse(success: success, errorMessage: errMsg)
 			case .execComplete(let execData):
 				handleExecComplete(data: execData)
-			case .error(let data):
-				handleErrorResponse(data: data)
+			case .error(let errorData):
+				handleErrorResponse(data: errorData)
 			case .help(topic: let topic, paths: let paths):
 				handleHelpResponse(topic: topic, paths: paths)
 			case .results(let data):
@@ -232,7 +232,7 @@ extension Session: ComputeWorkerDelegate {
 				handleVariableListResponse(data: data, isDelta: delta)
 			}
 		} catch {
-			Log.logger.error(message: "failed to parse response from data", true)
+			Log.logger.error(message: "failed to parse response from data \(error)", true)
 		}
 	}
 	
@@ -262,7 +262,23 @@ extension Session {
 	}
 	
 	func handleShowFileResponse(data: ComputeCoder.ShowFileData) {
-		
+		do {
+			//refetch from database so we have updated information
+			//if file is too large, only send meta info
+			guard let file = try settings.dao.getFile(id: data.fileId) else {
+				Log.logger.warning(message: "failed to find file \(data.fileId) to show output", true)
+				handleErrorResponse(data: ComputeCoder.ComputeErrorData(code: .unknownFile, details: "unknown file requested", transactionId: data.transactionId))
+				return
+			}
+			var fileData: Data? = nil
+			if file.fileSize < (settings.config.maximumWebSocketFileSizeKB * 1024) {
+				fileData = try settings.dao.getFileData(fileId: data.fileId)
+			}
+			let forClient = SessionResponse.ShowOutputData(transactionid: data.transactionId, file: file, fileData: fileData)
+			broadcastToAllClients(object: SessionResponse.showOutput(forClient))
+		} catch {
+			Log.logger.warning(message: "error handling show file: \(error)", true)
+		}
 	}
 	
 	// path values of the format "/usr/lib/R/library/stats/help/Normal"
@@ -285,19 +301,21 @@ extension Session {
 				outPaths[title] = aPath
 			}
 		}
-		broadcastToAllClients(object: SessionResponse.HelpData(topic: topic, items: outPaths))
+		let helpData = SessionResponse.HelpData(topic: topic, items: outPaths)
+		broadcastToAllClients(object: helpData)
 	}
 	
 	func handleVariableValueResponse(name: String, value: Any?) {
-		
 	}
 	
 	func handleVariableListResponse(data: [String: Any], isDelta: Bool) {
 		
 	}
 	
-	func handleErrorResponse(data: ComputeCoder.ErrorData) {
-		
+	func handleErrorResponse(data: ComputeCoder.ComputeErrorData) {
+		let serror = SessionError.compute(code: data.code, details: data.details, transactionId: data.transactionId)
+		let errorData = SessionResponse.ErrorData(transactionId: data.transactionId, error: serror)
+		broadcastToAllClients(object: SessionResponse.error(errorData))
 	}
 }
 

@@ -157,7 +157,8 @@ class ComputeCoder {
 		case "error":
 			guard let code = json["errorCode"] as? Int else { throw ComputeError.invalidFormat }
 			let ecode = SessionErrorCode(rawValue: code) ?? SessionErrorCode.unknown
-			return Response.error(ErrorData(code: ecode, details: json["errorDetails"] as? String, transactionId: transId))
+			let edata = ComputeErrorData(code: ecode, details: json["errorDetails"] as? String, transactionId: transId)
+			return Response.error(edata)
 		default:
 			Log.logger.error(message: "unknown response from compute engine: \(msg)", true)
 			throw ComputeError.invalidFormat
@@ -168,7 +169,7 @@ class ComputeCoder {
 	enum Response {
 		case open(success: Bool, errorMessage: String?)
 		case execComplete(ExecCompleteData)
-		case error(ErrorData)
+		case error(ComputeErrorData)
 		case help(topic: String, paths: [String])
 		case results(ResultsData)
 		case showFile(ShowFileData)
@@ -176,7 +177,7 @@ class ComputeCoder {
 		case variables(data: [String: Any], isDelta: Bool)
 	}
 	
-	struct ErrorData {
+	struct ComputeErrorData {
 		let code: SessionErrorCode
 		let details: String?
 		let transactionId: String?

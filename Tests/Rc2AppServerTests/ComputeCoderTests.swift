@@ -1,6 +1,7 @@
 import XCTest
 @testable import Rc2AppServer
 import Freddy
+import Rc2Model
 
 class ComputeCoderTests: XCTestCase {
 	var coder: ComputeCoder!
@@ -164,12 +165,12 @@ class ComputeCoderTests: XCTestCase {
 	
 	func testErrorSuccess() {
 		let json = """
-{"msg": "error", "errorCode": 123, "errorDetails": "foobar"}
+{"msg": "error", "errorCode": \(SessionErrorCode.unknownFile.rawValue), "errorDetails": "foobar"}
 """
 		let resp = try! coder.parseResponse(data: json.data(using: .utf8)!)
 		guard case let ComputeCoder.Response.error(errrsp) = resp
 			else { XCTFail("invalid error response"); return }
-		XCTAssertEqual(errrsp.code, 123)
+		XCTAssertEqual(errrsp.code, SessionErrorCode.unknownFile)
 		XCTAssertEqual(errrsp.details, "foobar")
 	}
 
