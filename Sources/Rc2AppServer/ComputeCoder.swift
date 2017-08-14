@@ -216,6 +216,11 @@ class ComputeCoder {
 		return qid
 	}
 	
+	// For internal usage to lookup a transactionId
+	func queryId(for transId: String) -> Int? {
+		return transactionIds[transId]
+	}
+
 	// MARK: - private structs for command serialization
 	private struct OpenCommand: Encodable {
 		let msg = "open"

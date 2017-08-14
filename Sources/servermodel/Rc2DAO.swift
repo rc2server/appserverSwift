@@ -215,6 +215,18 @@ open class Rc2DAO {
 		return data
 	}
 	
+	/// Returns array of session images based on array of ids
+	///
+	/// - Parameter imageIds: Array of image ids
+	/// - Returns: array of images
+	/// - Throws: Node errors if problem fetching from database
+	public func getImages(imageIds: [Int]?) throws -> [SessionImage] {
+		guard let imageIds = imageIds, imageIds.count > 0 else { return [] }
+		let idstring = imageIds.flatMap { String($0) }.joined(separator: ",")
+		let query = "select * from sessionimage where id in (\(idstring)) order by id"
+		let results = try getRows(query: query)
+		return try results.map { try SessionImage(node: $0) }
+	}
 	
 	//MARK: - private methods
 	private func getSingleRow(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> Node?

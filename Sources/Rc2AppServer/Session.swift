@@ -19,7 +19,7 @@ class Session {
 	/// allows whatever caches sessions to know when this session
 	private(set) var lastClientDisconnectTime: Date?
 	private var worker: ComputeWorker?
-	private let coder: ComputeCoder
+	let coder: ComputeCoder
 	private var sessionId: Int!
 	private var isOpen: Bool = false
 	
@@ -254,11 +254,19 @@ extension Session {
 	}
 	
 	func handleExecComplete(data: ComputeCoder.ExecCompleteData) {
-		
+		var images = [SessionImage]()
+		do {
+			images = try settings.dao.getImages(imageIds: data.imageIds)
+		} catch {
+			Log.logger.warning(message: "Error fetching images from compute \(error)", true)
+		}
+		let cdata = SessionResponse.ExecCompleteData(transactionId: data.transactionId, batchId: data.batchId ?? 0, expectShowOutput: data.expectShowOutput, images: images)
+		broadcastToAllClients(object: SessionResponse.execComplete(cdata))
 	}
 	
 	func handleResultsResponse(data: ComputeCoder.ResultsData) {
-		
+		let sresults = SessionResponse.ResultsData(transactionId: data.transactionId, output: data.text, isError: data.isStdErr)
+		broadcastToAllClients(object: SessionResponse.results(sresults))
 	}
 	
 	func handleShowFileResponse(data: ComputeCoder.ShowFileData) {
