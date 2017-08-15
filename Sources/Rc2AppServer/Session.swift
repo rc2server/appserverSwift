@@ -147,7 +147,7 @@ extension Session: SessionSocketDelegate {
 		case .getVariable(let name):
 			handleGetVariable(name: name, socket: socket)
 		case .watchVariables(let enable):
-			handleWatchVaraibles(enable: enable, socket: socket)
+			handleWatchVariables(enable: enable, socket: socket)
 		case .save(let params):
 			handleSave(params: params, socket: socket)
 		}
@@ -190,7 +190,7 @@ extension Session {
 		
 	}
 	
-	private func handleWatchVaraibles(enable: Bool, socket: SessionSocket) {
+	private func handleWatchVariables(enable: Bool, socket: SessionSocket) {
 		
 	}
 	
@@ -199,7 +199,13 @@ extension Session {
 	}
 	
 	private func handleHelp(topic: String, socket: SessionSocket) {
-		
+		do {
+			let data = try? coder.help(topic: topic)
+			try data?.write(to: URL(fileURLWithPath: "/tmp/url-out.txt"))
+			try worker?.send(data: data!)
+		} catch {
+			Log.logger.warning(message: "error sending help message: \(error)", true)
+		}
 	}
 }
 
