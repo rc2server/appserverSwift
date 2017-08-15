@@ -99,7 +99,8 @@ extension Session {
 			lastClientDisconnectTime = nil
 		}
 		do {
-			broadcastToAllClients(object: try settings.dao.getUserInfo(user: socket.user))
+			let info = try settings.dao.getUserInfo(user: socket.user)
+			broadcastToAllClients(object: SessionResponse.connected(info))
 		} catch {
 			Log.logger.error(message: "failed to send BulkUserInfo \(error)", true)
 		}
@@ -316,7 +317,7 @@ extension Session {
 			}
 		}
 		let helpData = SessionResponse.HelpData(topic: topic, items: outPaths)
-		broadcastToAllClients(object: helpData)
+		broadcastToAllClients(object: SessionResponse.help(helpData))
 	}
 	
 	func handleVariableValueResponse(name: String, value: Any?) {

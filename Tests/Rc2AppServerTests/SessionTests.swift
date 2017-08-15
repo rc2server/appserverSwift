@@ -124,13 +124,14 @@ class SessionTests: XCTestCase {
 		XCTAssertEqual(sessionSocket.messages.count, 1)
 		let resultJson = String(data: sessionSocket.messages[0], encoding: .utf8)
 		do {
-			let response: SessionResponse.HelpData = try settings.decode(data: resultJson!.data(using: .utf8)!)
+			let response: SessionResponse = try settings.decode(data: resultJson!.data(using: .utf8)!)
 			XCTAssertNotNil(response)
-			XCTAssertEqual(response.topic, "zip")
-			XCTAssertEqual(response.items.count, 2)
-			XCTAssertEqual(response.items["print (base)"], "/base/html/print.html")
+			guard case let SessionResponse.help(helpData) = response else { XCTFail("invalid response"); return }
+			XCTAssertEqual(helpData.topic, "zip")
+			XCTAssertEqual(helpData.items.count, 2)
+			XCTAssertEqual(helpData.items["print (base)"], "/base/html/print.html")
 		} catch {
-			fatalError("error decoding help object")
+			fatalError("error decoding help object \(error)")
 		}
 	}
 	
