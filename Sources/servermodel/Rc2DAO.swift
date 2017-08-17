@@ -218,6 +218,35 @@ open class Rc2DAO {
 		return data
 	}
 	
+	/// creates a new file
+	///
+	/// - Parameters:
+	///   - name: name for the new file
+	///   - wspaceId: id of the workspace the file belongs to
+	///   - bytes: the contents of the file
+	/// - Returns: the newly created file object
+	/// - Throws: any database errors
+	public func insertFile(name: String, wspaceId: Int, bytes: [UInt8]) throws -> File {
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		return try queue.sync { () throws -> File in
+			let conn = try pgdb.makeConnection()
+			return try conn.transaction { () -> File in
+				let insertRow = try conn.execute("insert into rcfile (wspaceid, name, filesize) values (\(wspaceId), $1, \(bytes.count)) returning *", [Node(stringLiteral: name)])
+				guard let fileId: Int = try insertRow.get("id") else { throw DBError.queryFailed }
+				try conn.execute("insert into rcfiledata (id, bindata) values ($1, $2)",
+				                 [Bind(int: fileId, configuration: conn.configuration),
+				                  Bind(bytes: bytes, configuration: conn.configuration)])
+				return try File(node: insertRow)
+			}
+		}
+	}
+	
+	/// Updates the contents of a file
+	///
+	/// - Parameters:
+	///   - bytes: the updated content of the file
+	///   - fileId: the id of the file
+	/// - Throws: any database error
 	public func setFile(bytes: [UInt8], fileId: Int) throws {
 		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
 		try queue.sync { () throws -> Void in
