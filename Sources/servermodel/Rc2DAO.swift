@@ -181,11 +181,14 @@ open class Rc2DAO {
 	///
 	/// - Parameters:
 	///   - id: id of the file
+	///   - userId: the id of the user that owns the file
 	///   - connection: optional database connection
 	/// - Returns: file with id
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
-	public func getFile(id: Int, connection: Connection? = nil) throws -> File? {
-		guard let node = try getSingleRow(tableName: "rcfile", keyName: "id", keyValue: Node(integerLiteral: id))
+	public func getFile(id: Int, userId: Int, connection: Connection? = nil) throws -> File? {
+		let values = [Node(integerLiteral: id), Node(integerLiteral: userId)]
+		let query = "select f.* from rcfile f join rcworkspace w on f.wspaceId = w.id where w.userId = $2 and f.id = $1"
+		guard let node = try getSingleRow(query: query, values: values)
 			else { return nil }
 		return try File(node: node)
 	}
@@ -213,6 +216,17 @@ open class Rc2DAO {
 		let result = try getSingleRow(tableName: "rcfiledata", keyName: "id", keyValue: try Node(node: fileId))
 		guard let data: Data = try result?.get("bindata") else { throw ModelError.notFound }
 		return data
+	}
+	
+	public func setFile(bytes: [UInt8], fileId: Int) throws {
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		try queue.sync { () throws -> Void in
+			let conn = try pgdb.makeConnection()
+			try conn.transaction { () -> Void in
+				try conn.execute("update rcfile set version = version + 1, lastmodified = now(), filesize = \(bytes.count) where id = \(fileId)")
+				try conn.execute("update rcfiledata set bindata = $1", [Bind(bytes: bytes, configuration: conn.configuration)])
+			}
+		}
 	}
 	
 	/// Returns array of session images based on array of ids
@@ -248,7 +262,27 @@ open class Rc2DAO {
 		}
 		return finalResults
 	}
-	
+
+	private func getSingleRow(_ connection: Connection? = nil, query: String, values: [Node]) throws -> Node?
+	{
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		var finalResults: Node? = nil
+		try queue.sync { () throws -> Void in
+			let conn = connection == nil ? try pgdb.makeConnection() : connection!
+			let result = try conn.execute(query, values)
+			guard let array = result.array else { return }
+			switch array.count {
+			case 0:
+				return
+			case 1:
+				finalResults = array[0]
+			default:
+				throw ModelError.duplicateObject
+			}
+		}
+		return finalResults
+	}
+
 	private func getRows(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> [Node]
 	{
 		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }

@@ -259,7 +259,7 @@ class ComputeCoder {
 
 	private struct ExecuteFile: Encodable {
 		let msg = "execFile"
-		let startTime = Date()
+		let startTime = Int(Date().timeIntervalSince1970).description
 		let argument: String
 		let queryId: Int
 		let clientData: [String: Int]
@@ -278,7 +278,7 @@ class ComputeCoder {
 		let msg = "execScript"
 		let queryId: Int
 		let argument: String
-		let startTime = Date()
+		let startTime = Int(Date().timeIntervalSince1970).description
 		
 		init(queryId: Int, script: String) {
 			self.queryId = queryId

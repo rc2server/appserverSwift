@@ -27,6 +27,7 @@ open class AppServer {
 	private var settings: AppSettings!
 	private var sessionHandler: SessionHandler!
 	private var websocketHandler: WebSocketHandler!
+	private var fileHandler: FileHandler!
 
 	/// creates a server with the authentication filter installed
 	public init() {
@@ -36,6 +37,7 @@ open class AppServer {
 	public func defaultRoutes() -> [Route] {
 		var defRoutes = [Route]()
 		defRoutes.append(contentsOf: authManager.authRoutes())
+		defRoutes.append(contentsOf: fileHandler.routes())
 
 		defRoutes.append(Route(method: .get, uri: "/ws/{wsId}") { request, response in
 			self.websocketHandler.handleRequest(request: request, response: response)
@@ -67,6 +69,7 @@ open class AppServer {
 		do {
 			try dao.connect(host: settings.config.dbHost, user: "rc2", database: "rc2")
 			authManager = AuthManager(dao: dao)
+			fileHandler = FileHandler(settings: settings)
 		} catch {
 			print("failed to connect to database \(error)")
 			exit(1)

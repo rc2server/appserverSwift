@@ -280,7 +280,7 @@ extension Session {
 		do {
 			//refetch from database so we have updated information
 			//if file is too large, only send meta info
-			guard let file = try settings.dao.getFile(id: data.fileId) else {
+			guard let file = try settings.dao.getFile(id: data.fileId, userId: workspace.userId) else {
 				Log.logger.warning(message: "failed to find file \(data.fileId) to show output", true)
 				handleErrorResponse(data: ComputeCoder.ComputeErrorData(code: .unknownFile, details: "unknown file requested", transactionId: data.transactionId))
 				return
