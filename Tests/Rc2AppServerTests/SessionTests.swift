@@ -170,7 +170,7 @@ class SessionTests: XCTestCase {
 			return BulkUserInfo(user: user, projects: [emptyProject], workspaces: [101: [wspace101]], files: [101: [file101]])
 		}
 		
-		override func getFile(id: Int, connection: Connection?) throws -> File? {
+		override func getFile(id: Int, userId: Int, connection: Connection?) throws -> File? {
 			guard id == file101.id else { return nil }
 			return file101
 		}

@@ -42,5 +42,8 @@ let package = Package(
         .testTarget(
             name: "Rc2AppServerTests",
             dependencies: ["Rc2AppServer"]),
+        .testTarget(
+        	name: "servermodelTests",
+        	dependencies: ["servermodel"]),
     ]
 )

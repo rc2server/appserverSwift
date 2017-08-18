@@ -6,8 +6,8 @@
         "repositoryURL": "https://github.com/vapor/bits.git",
         "state": {
           "branch": null,
-          "revision": "389f1344cd5819e94c54ee18b35c2bc5589c7f05",
-          "version": "1.0.0"
+          "revision": "c32f5e6ae2007dccd21a92b7e33eba842dd80d2f",
+          "version": "1.1.0"
         }
       },
       {
@@ -42,8 +42,8 @@
         "repositoryURL": "https://github.com/vapor/core.git",
         "state": {
           "branch": null,
-          "revision": "03af35140315ad2d5cbf6c197bcf4a64b9c5e24d",
-          "version": "2.0.2"
+          "revision": "b8330808f4f6b69941961afe8ad6b015562f7b7c",
+          "version": "2.1.2"
         }
       },
       {
@@ -51,8 +51,8 @@
         "repositoryURL": "https://github.com/vapor/debugging.git",
         "state": {
           "branch": null,
-          "revision": "bbd261de01c47f2e4d9acf4097807349330194ea",
-          "version": "1.0.0"
+          "revision": "49c5e8f0a7cb5456a8f7c72c6cd9f1553e5885a8",
+          "version": "1.1.0"
         }
       },
       {
@@ -69,8 +69,8 @@
         "repositoryURL": "https://github.com/vapor/node.git",
         "state": {
           "branch": null,
-          "revision": "2d34e0034d8794ca378fddf7d30b7a227dd8d49e",
-          "version": "2.0.4"
+          "revision": "642f357d08ec5aa335ae2e3c4633c72da7b5a0c4",
+          "version": "2.1.1"
         }
       },
       {
@@ -87,8 +87,8 @@
         "repositoryURL": "https://github.com/PerfectlySoft/Perfect-HTTP.git",
         "state": {
           "branch": null,
-          "revision": "8577a063883d7e64b8bc3cebba8e3848556e9523",
-          "version": "2.2.3"
+          "revision": "eb93186d03409b81cfbc5dd65275f55a5df70cac",
+          "version": "2.2.4"
         }
       },
       {
@@ -96,8 +96,8 @@
         "repositoryURL": "https://github.com/PerfectlySoft/Perfect-HTTPServer.git",
         "state": {
           "branch": null,
-          "revision": "ed8db35571dd89167e1ebc5135cd61b6e21b869e",
-          "version": "2.3.0"
+          "revision": "80148a8197b900559543e9616f2c314b5d36e3fc",
+          "version": "2.3.2"
         }
       },
       {
@@ -133,15 +133,6 @@
         "state": {
           "branch": null,
           "revision": "a2be9e897fed832e2466158d455e63429d04d3bc",
-          "version": "2.0.2"
-        }
-      },
-      {
-        "package": "PostgreSQL",
-        "repositoryURL": "https://github.com/vapor/postgresql.git",
-        "state": {
-          "branch": null,
-          "revision": "5efa27f6dbf51434475de5a429d2eb7ea74eab11",
           "version": "2.0.2"
         }
       },

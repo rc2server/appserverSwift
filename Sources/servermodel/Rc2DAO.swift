@@ -12,11 +12,14 @@ import Rc2Model
 open class Rc2DAO {
 	enum DBError: Error {
 		case queryFailed
+		case connectionFailed
 	}
 	
 	private(set) var pgdb: PostgreSQL.Database?
-	// queue is used by internal methods all database calls evenetually use
+	// queue is used by internal methods all database calls ultimately use
 	let queue: DispatchQueue
+	// file monitor
+	var fileMonitor: FileChangeMonitor?
 	
 	public init() {
 		queue = DispatchQueue(label: "database serial queue")
@@ -271,7 +274,18 @@ open class Rc2DAO {
 		return try results.map { try SessionImage(node: $0) }
 	}
 	
-	//MARK: - private methods
+	// MARK: - file observation
+	
+	public func addFileChangeObserver(callback: @escaping (SessionResponse.FileChangedData) -> Void) throws {
+		if nil == fileMonitor {
+			guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+			guard let conn = try? pgdb.makeConnection() else { throw DBError.connectionFailed }
+			fileMonitor = try FileChangeMonitor(connection: conn)
+		}
+		fileMonitor?.add(observer: callback)
+	}
+	
+	// MARK: - private methods
 	private func getSingleRow(_ connection: Connection? = nil, tableName: String, keyName: String, keyValue: Node) throws -> Node?
 	{
 		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
