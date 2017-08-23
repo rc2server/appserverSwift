@@ -14,7 +14,7 @@ class FileChangeMonitor {
 	
 	private var dbConnection: DBConnection
 	private let queue: DispatchQueue
-	private var observers = [Observer]()
+	private var observers = [(Int, Observer)]()
 	// has to be var or can't pass a callback that is a method on this object in the initializer
 	private var reader: DispatchSourceRead!
 	
@@ -29,8 +29,8 @@ class FileChangeMonitor {
 		reader.cancel()
 	}
 	
-	func add(observer: @escaping Observer) {
-		observers.append(observer)
+	func add(wspaceId: Int, observer: @escaping Observer) {
+		observers.append((wspaceId, observer))
 	}
 	
 	// internal to allow unit testing
@@ -58,7 +58,7 @@ class FileChangeMonitor {
 			file = try? File(node: array[0])
 		}
 		let changeData = SessionResponse.FileChangedData(type: changeType, file: file, fileId: fileId)
-		observers.forEach { $0(changeData) }
+		observers.forEach { if wspaceId == $0.0 { $0.1(changeData) } }
 	}
 }
 

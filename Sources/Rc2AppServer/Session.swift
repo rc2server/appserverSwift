@@ -52,6 +52,7 @@ class Session {
 			Log.logger.error(message: "failed to connect to compute engine", true)
 			throw error
 		}
+		try settings.dao.addFileChangeObserver(wspaceId: workspace.id, callback: handleFileChanged)
 	}
 	
 	public func shutdown() throws {
@@ -325,6 +326,10 @@ extension Session {
 	
 	func handleVariableListResponse(data: [String: Any], isDelta: Bool) {
 		
+	}
+	
+	func handleFileChanged(data: SessionResponse.FileChangedData) {
+		broadcastToAllClients(object: SessionResponse.fileChanged(data))
 	}
 	
 	func handleErrorResponse(data: ComputeCoder.ComputeErrorData) {

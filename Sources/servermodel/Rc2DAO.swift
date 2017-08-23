@@ -234,12 +234,12 @@ open class Rc2DAO {
 		return try queue.sync { () throws -> File in
 			let conn = try pgdb.makeConnection()
 			return try conn.transaction { () -> File in
-				let insertRow = try conn.execute("insert into rcfile (wspaceid, name, filesize) values (\(wspaceId), $1, \(bytes.count)) returning *", [Node(stringLiteral: name)])
-				guard let fileId: Int = try insertRow.get("id") else { throw DBError.queryFailed }
+				let rawResult = try conn.execute("insert into rcfile (wspaceid, name, filesize) values (\(wspaceId), $1, \(bytes.count)) returning *", [Node(stringLiteral: name)])
+				guard let array = rawResult.array, let fileId: Int = try array[0].get("id") else { throw DBError.queryFailed }
 				try conn.execute("insert into rcfiledata (id, bindata) values ($1, $2)",
 				                 [Bind(int: fileId, configuration: conn.configuration),
 				                  Bind(bytes: bytes, configuration: conn.configuration)])
-				return try File(node: insertRow)
+				return try File(node: array[0])
 			}
 		}
 	}
@@ -276,13 +276,13 @@ open class Rc2DAO {
 	
 	// MARK: - file observation
 	
-	public func addFileChangeObserver(callback: @escaping (SessionResponse.FileChangedData) -> Void) throws {
+	public func addFileChangeObserver(wspaceId: Int, callback: @escaping (SessionResponse.FileChangedData) -> Void) throws {
 		if nil == fileMonitor {
 			guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
 			guard let conn = try? pgdb.makeConnection() else { throw DBError.connectionFailed }
 			fileMonitor = try FileChangeMonitor(connection: conn)
 		}
-		fileMonitor?.add(observer: callback)
+		fileMonitor?.add(wspaceId: wspaceId, observer: callback)
 	}
 	
 	// MARK: - private methods
