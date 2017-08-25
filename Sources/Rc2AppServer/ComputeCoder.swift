@@ -7,6 +7,7 @@
 import Foundation
 import PerfectLib
 import Rc2Model
+import servermodel
 
 /// object to transform data send/received from the compute engine
 class ComputeCoder {
@@ -143,14 +144,13 @@ class ComputeCoder {
 			return Response.showFile(ShowFileData(fileId: fileId, fileVersion: fileVersion, fileName: fileName, transactionId: transId))
 		case "variableupdate":
 			guard let delta = json["delta"] as? Bool,
-				let data = json["variables"] as? [String: Any]
+				let data = json["variables"] as? [String: [String: Any]],
+				let vars = Optional.some(data.flatMap({ Variable(dictionary: $0.1) }))
 			else { throw ComputeError.invalidFormat }
-			return Response.variables(data: data, isDelta: delta)
+			return Response.variables(ListVariablesData(variables: vars, delta: delta))
 		case "variablevalue":
-			guard let name = json["name"] as? String,
-				let value = json["value"] as? [String: Any]
-			else { throw ComputeError.invalidFormat }
-			return Response.variableValue(name: name, value: value)
+			guard let value = Variable(dictionary: json) else { throw ComputeError.invalidFormat }
+			return Response.variableValue(value)
 		case "help":
 			guard let topic = json["topic"] as? String, let paths = json["paths"] as? [String] else { throw ComputeError.invalidFormat }
 			return Response.help(topic: topic, paths: paths)
@@ -173,8 +173,8 @@ class ComputeCoder {
 		case help(topic: String, paths: [String])
 		case results(ResultsData)
 		case showFile(ShowFileData)
-		case variableValue(name: String, value: Any?)
-		case variables(data: [String: Any], isDelta: Bool)
+		case variableValue(Variable)
+		case variables(ListVariablesData)
 	}
 	
 	struct ComputeErrorData {
@@ -202,6 +202,11 @@ class ComputeCoder {
 		let fileVersion: Int
 		let fileName: String
 		let transactionId: String
+	}
+	
+	struct ListVariablesData {
+		let variables: [Variable]
+		let delta: Bool
 	}
 	
 	// MARK: - internal methods

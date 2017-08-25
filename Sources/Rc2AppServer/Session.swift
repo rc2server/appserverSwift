@@ -234,10 +234,10 @@ extension Session: ComputeWorkerDelegate {
 				handleResultsResponse(data: data)
 			case .showFile(let data):
 				handleShowFileResponse(data: data)
-			case .variableValue(name: let name, value: let value):
-				handleVariableValueResponse(name: name, value: value)
-			case .variables(data: let data, isDelta: let delta):
-				handleVariableListResponse(data: data, isDelta: delta)
+			case .variableValue(let data):
+				handleVariableValueResponse(value: data)
+			case .variables(let data):
+				handleVariableListResponse(data: data)
 			}
 		} catch {
 			Log.logger.error(message: "failed to parse response from data \(error)", true)
@@ -321,11 +321,13 @@ extension Session {
 		broadcastToAllClients(object: SessionResponse.help(helpData))
 	}
 	
-	func handleVariableValueResponse(name: String, value: Any?) {
+	func handleVariableValueResponse(value: Variable) {
+		broadcastToAllClients(object: SessionResponse.variableValue(value))
 	}
 	
-	func handleVariableListResponse(data: [String: Any], isDelta: Bool) {
-		
+	func handleVariableListResponse(data: ComputeCoder.ListVariablesData) {
+		let varData = SessionResponse.ListVariablesData(values: data.variables, delta: data.delta)
+		broadcastToAllClients(object: SessionResponse.variables(varData))
 	}
 	
 	func handleFileChanged(data: SessionResponse.FileChangedData) {

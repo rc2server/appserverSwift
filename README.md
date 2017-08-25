@@ -17,3 +17,12 @@ Latest version of AppServer written in Swift, deployable on Linux.
 To generate an xcodeproj, use `swift package generate-xcodeproj --xcconfig-overrides Mac.xcconfig`. This will override the deployment target which swift hardcodes at 10.10.
 
 To compile from the command line on macOS, use `swift  build -Xswiftc "-target" -Xswiftc x86_64-apple-macosx10.12`
+
+## integration testing
+
+start docker containers with:
+
+`docker run -d --name appdev_compute --network rc2dev --network-alias compute -p 7714:7714 rc2server/compute:0.4.4`
+
+`docker run -d --name appdev_db --network rc2dev --network-alias dbserver -p 5432:5432 mlilback/appdevdb:0.1`
+
