@@ -19,7 +19,7 @@ class FileChangeMonitorTests: XCTestCase {
 	
 	func testValidNotfications() {
 		let note = MockDBNotification(pid: 1, channel: "rcfile", payload: "u/101/102/3")
-		monitor.add(observer: changeHandler)
+		monitor.add(wspaceId: 102, observer: changeHandler)
 		monitor.handleNotification(notification: note, error: nil)
 		XCTAssertNotNil(lastChange)
 		XCTAssertEqual(lastChange?.fileId, 101)

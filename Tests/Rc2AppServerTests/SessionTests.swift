@@ -12,7 +12,6 @@ import PostgreSQL
 class SessionTests: XCTestCase {
 	var session: Session!
 	var dao: MockDAO!
-	var emptyProject: Project!
 	var settings: AppSettings!
 	var user: User!
 	var fakeNet: Int32 = -1
@@ -29,8 +28,6 @@ class SessionTests: XCTestCase {
 		let tcp = NetTCP(fd: fakeNet)
 		let ws = WebSocket(socket: tcp)
 		dao = MockDAO()
-		emptyProject = Project(id: 101, version: 1, userId: 101, name: "proj1")
-		dao.emptyProject = emptyProject
 		settings = AppSettings(dataDirURL: URL(fileURLWithPath: "/tmp/"), configData: "{}".data(using: .utf8), dao: dao)
 		socketDelegate = MockSessionSocketDelegate()
 		
@@ -154,37 +151,7 @@ class SessionTests: XCTestCase {
 			fatalError("error decoding error object")
 		}
 	}
-	
-	class MockDAO: Rc2DAO {
-		var emptyProject: Project!
-		var wspace101 = Workspace(id: 101, version: 1, name: "awspace", userId: 101, projectId: 101, uniqueId: "w2space1", lastAccess: Date(), dateCreated: Date())
-		var file101 = File(id: 101, wspaceId: 101, name: "foo.pdf", version: 1, dateCreated: Date(), lastModified: Date(), fileSize: 1899)
-		var image201 = SessionImage(id: 201, sessionId: 200, batchId: 2, name: "plot1.png", title: nil, dateCreated: Date(), imageData: Data(repeatElement(0x45, count: 890)))
-		var image202 = SessionImage(id: 202, sessionId: 200, batchId: 2, name: "plot2.png", title: nil, dateCreated: Date(), imageData: Data(repeatElement(0x45, count: 211)))
 
-		override public func getProjects(ownedBy: User, connection: PostgreSQL.Connection? = nil) throws -> [Project] {
-			return [emptyProject]
-		}
-		
-		override func getUserInfo(user: User) throws -> BulkUserInfo {
-			return BulkUserInfo(user: user, projects: [emptyProject], workspaces: [101: [wspace101]], files: [101: [file101]])
-		}
-		
-		override func getFile(id: Int, userId: Int, connection: Connection?) throws -> File? {
-			guard id == file101.id else { return nil }
-			return file101
-		}
-		
-		override func getFileData(fileId: Int, connection: Connection?) throws -> Data {
-			guard fileId == file101.id else { throw ModelError.notFound }
-			return Data(repeatElement(0x45, count: file101.fileSize))
-		}
-		
-		override func getImages(imageIds: [Int]?) throws -> [SessionImage] {
-			return [ image201, image202 ]
-		}
-	}
-	
 	class MockSessionSocket: SessionSocket {
 		var messages = [Data]()
 		override func send(data: Data, completion: (@escaping () -> Void)) {
@@ -192,7 +159,7 @@ class SessionTests: XCTestCase {
 			completion()
 		}
 	}
-	
+
 	class MockSessionSocketDelegate: SessionSocketDelegate {
 		var callback: ((SessionCommand) -> Void)?
 		
