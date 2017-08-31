@@ -10,6 +10,7 @@ import Rc2Model
 import PostgreSQL
 
 class MockDAO: Rc2DAO {
+	var user: User = User(id: 101, version: 1, login: "test", email: "test@rc2.io")
 	var emptyProject = Project(id: 101, version: 1, userId: 101, name: "proj1")
 	var wspace101 = Workspace(id: 101, version: 1, name: "awspace", userId: 101, projectId: 101, uniqueId: "w2space1", lastAccess: Date(), dateCreated: Date())
 	var file101 = File(id: 101, wspaceId: 101, name: "foo.pdf", version: 1, dateCreated: Date(), lastModified: Date(), fileSize: 1899)
@@ -18,6 +19,10 @@ class MockDAO: Rc2DAO {
 	
 	override public func getProjects(ownedBy: User, connection: PostgreSQL.Connection? = nil) throws -> [Project] {
 		return [emptyProject]
+	}
+	
+	override func getUser(id: Int, connection: Connection?) throws -> User? {
+		return user
 	}
 	
 	override func getUserInfo(user: User) throws -> BulkUserInfo {
