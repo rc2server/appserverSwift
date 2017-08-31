@@ -9,13 +9,8 @@ import PerfectHTTP
 import PerfectLib
 import Rc2Model
 
-class FileHandler {
+class FileHandler: BaseHandler {
 	let fileNameHeader = "Rc2-Filename"
-	let settings: AppSettings
-	
-	init(settings: AppSettings) {
-		self.settings = settings
-	}
 	
 	func routes() -> [Route] {
 		var routes = [Route]()
@@ -84,14 +79,5 @@ class FileHandler {
 		response.setHeader(.contentDisposition, value: "attachment; filename = \"\(fname)\"")
 		response.setHeader(.contentType, value: MimeType.forExtension("bin"))
 		response.completed()
-	}
-	
-	/// send the specified session error as json content with a 404 error
-	private func handle(error: SessionError, response: HTTPResponse) {
-		if let errorData = try? settings.encode(error) {
-			response.bodyBytes.append(contentsOf: errorData)
-			response.setHeader(.contentType, value: MimeType.forExtension("json"))
-		}
-		response.completed(status: .notFound)
 	}
 }
