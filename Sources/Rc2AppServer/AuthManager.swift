@@ -39,7 +39,7 @@ class AuthManager {
 		}
 		do {
 			let json = try JSON(jsonString: jsonString)
-			let login = try json.getString(at: "user")
+			let login = try json.getString(at: "login")
 			let password = try json.getString(at: "password")
 			guard let user = try self.dao.getUser(login: login, password: password) else {
 				//invalid login

@@ -13,6 +13,7 @@ open class Rc2DAO {
 	enum DBError: Error {
 		case queryFailed
 		case connectionFailed
+		case invalidFile
 	}
 	
 	private(set) var pgdb: PostgreSQL.Database?
@@ -178,6 +179,50 @@ open class Rc2DAO {
 	public func getWorkspaces(project: Project, connection: Connection? = nil) throws -> [Workspace] {
 		let nodes = try getRows(tableName: "rcworkspace", keyName: "projectId", keyValue: Node(integerLiteral: project.id))
 		return try nodes.flatMap { try Workspace(node: $0) }
+	}
+	
+	/// Çreates a new workspace
+	///
+	/// - Parameters:
+	///   - project: project containing the workspace
+	///   - name: the name of the workspace
+	///   - insertingFiles: URLs of files to insert in the newly created workspace
+	/// - Returns: the Workspace that was created
+	/// - Throws: any database errors
+	@discardableResult
+	public func createWorkspace(project: Project, name: String, insertingFiles files: [URL]? = nil) throws -> Workspace
+	{
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		return try queue.sync { () throws -> Workspace in
+			let conn = try pgdb.makeConnection()
+			return try conn.transaction { () -> Workspace in
+				let rawResult = try conn.execute("insert into rcworkspace (name, userid, projectid) values ($1, \(project.userId), \(project.id)) returning *", [Node(stringLiteral: name)])
+				guard let array = rawResult.array else { throw DBError.queryFailed }
+				let wspace = try Workspace(node: array[0])
+				if let files = files {
+					try insertFiles(urls: files, wspaceId: wspace.id, conn: conn)
+				}
+				return wspace
+			}
+		}
+	}
+	
+	/// insert an array of files from the local file system
+	///
+	/// - Parameters:
+	///   - urls: array of file URLs to insert
+	///   - wspaceId: the id of the workspace to add them to
+	/// - Throws: any database errors
+	private func insertFiles(urls: [URL], wspaceId: Int, conn: Connection) throws {
+		for aFile in urls {
+			guard aFile.isFileURL else { throw DBError.invalidFile }
+			let fileData = try Data(contentsOf: aFile)
+			let rawResult = try conn.execute("insert into rcfile (wspaceid, name, filesize) values (\(wspaceId), $1, \(fileData.count)) returning *", [Node(stringLiteral: aFile.lastPathComponent)])
+			guard let array = rawResult.array, let fileId: Int = try array[0].get("id") else { throw DBError.queryFailed }
+			try conn.execute("insert into rcfiledata (id, bindata) values ($1, $2)",
+							 [Bind(int: fileId, configuration: conn.configuration),
+							  Bind(bytes: fileData.makeBytes(), configuration: conn.configuration)])
+		}
 	}
 	
 	/// get file with specific id

@@ -137,12 +137,30 @@
         }
       },
       {
+        "package": "PerfectZip",
+        "repositoryURL": "https://github.com/PerfectlySoft/Perfect-Zip.git",
+        "state": {
+          "branch": null,
+          "revision": "e0c59e720217d2638e78ae5df29ac8e38143db4e",
+          "version": "2.0.3"
+        }
+      },
+      {
         "package": "Signals",
         "repositoryURL": "https://github.com/IBM-Swift/BlueSignals.git",
         "state": {
           "branch": null,
           "revision": "99ac410f8ad4a75f0ec9a9d72512d5028e804253",
           "version": "0.9.48"
+        }
+      },
+      {
+        "package": "minizip",
+        "repositoryURL": "https://github.com/iamjono/minizip.git",
+        "state": {
+          "branch": null,
+          "revision": "994e5467d8441a936ffc7d43061a1285e4f1f23e",
+          "version": "0.1.1"
         }
       }
     ]

@@ -29,6 +29,7 @@ open class AppServer {
 	private var websocketHandler: WebSocketHandler!
 	private var fileHandler: FileHandler!
 	private var infoHandler: InfoHandler!
+	private var modelHandler: ModelHandler!
 
 	/// creates a server with the authentication filter installed
 	public init() {
@@ -40,6 +41,7 @@ open class AppServer {
 		defRoutes.append(contentsOf: authManager.authRoutes())
 		defRoutes.append(contentsOf: fileHandler.routes())
 		defRoutes.append(contentsOf: infoHandler.routes())
+		defRoutes.append(contentsOf: modelHandler.routes())
 
 		defRoutes.append(Route(method: .get, uri: "/ws/{wsId}") { request, response in
 			self.websocketHandler.handleRequest(request: request, response: response)
@@ -73,6 +75,7 @@ open class AppServer {
 			authManager = AuthManager(dao: dao)
 			fileHandler = FileHandler(settings: settings)
 			infoHandler = InfoHandler(settings: settings)
+			modelHandler = ModelHandler(settings: settings)
 		} catch {
 			print("failed to connect to database \(error)")
 			exit(1)

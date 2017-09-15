@@ -12,6 +12,10 @@
 
 Latest version of AppServer written in Swift, deployable on Linux.
 
+## Dependencies
+
+Requires the minizip library. On mac, `brew install minizip`, on linux `apt-get install libminizip-dev`.
+
 ## Build setup
 
 To generate an xcodeproj, use `swift package generate-xcodeproj --xcconfig-overrides Mac.xcconfig`. This will override the deployment target which swift hardcodes at 10.10.
