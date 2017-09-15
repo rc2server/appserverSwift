@@ -21,8 +21,7 @@ let package = Package(
 		.package(url: "https://github.com/PerfectlySoft/Perfect-HTTPServer.git", from: "2.2.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-Net.git", from: "2.1.7"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-Zip.git", from: "2.0.0"),
-		.package(url: "https://github.com/bignerdranch/Freddy.git", from: "3.0.0"),
-		.package(url: "https://github.com/vapor/postgresql.git", from: "2.0.0"),
+		.package(url: "https://github.com/mlilback/postgresql.git", from: "2.0.0"),
 		.package(url: "https://github.com/vapor/node.git", from: "2.0.0"),
 		.package(url: "https://github.com/rc2server/appModelSwift.git", from: "0.1.0"),
 		.package(url: "https://github.com/IBM-Swift/BlueSignals.git", from: "0.9.48"),
@@ -39,7 +38,7 @@ let package = Package(
             dependencies: ["PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "PerfectZip", "servermodel", "CommandLine", "Rc2Model", "Signals"]),
         .target(
         	name: "servermodel",
-        	dependencies: ["Node", "PostgreSQL", "Freddy"]),
+        	dependencies: ["Node", "PostgreSQL"]),
         .testTarget(
             name: "Rc2AppServerTests",
             dependencies: ["Rc2AppServer"]),

@@ -72,7 +72,7 @@ open class AppServer {
 
 		do {
 			try dao.connect(host: settings.config.dbHost, user: "rc2", database: "rc2")
-			authManager = AuthManager(dao: dao)
+			authManager = AuthManager(settings: settings)
 			fileHandler = FileHandler(settings: settings)
 			infoHandler = InfoHandler(settings: settings)
 			modelHandler = ModelHandler(settings: settings)

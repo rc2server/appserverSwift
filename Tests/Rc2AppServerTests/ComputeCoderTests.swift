@@ -1,10 +1,10 @@
 import XCTest
 @testable import Rc2AppServer
-import Freddy
 import Rc2Model
 
 class ComputeCoderTests: XCTestCase {
 	var coder: ComputeCoder!
+	var decoder: JSONDecoder!
 	
 	static var allTests = [
 		("testOpenSuccess", testOpenSuccess),
@@ -28,70 +28,79 @@ class ComputeCoderTests: XCTestCase {
 		("testListVariables", testListVariables),
 		]
 
+	struct JsonResponse: Codable {
+		let msg: String
+		let argument: String?
+		let clientData: [String: Int]?
+		let watch: Bool?
+		let delta: Bool?
+	}
+
 	override func setUp() {
 		coder = ComputeCoder()
+		decoder = JSONDecoder()
 	}
 	
 	// MARK: - request tests
 	func testGetVariable() {
 		let data = try! coder.getVariable(name: "foo123")
-		let json = try! JSON(data: data)
-		XCTAssertEqual(try! json.getString(at: "msg"), "getVariable")
-		XCTAssertEqual(try! json.getString(at: "argument"), "foo123")
+		let json = try! decoder.decode(JsonResponse.self, from: data)
+		XCTAssertEqual(json.msg, "getVariable")
+		XCTAssertEqual(json.argument, "foo123")
 	}
 	
 	func testHelp() {
 		let data = try! coder.help(topic: "rnorm")
-		let json = try! JSON(data: data)
-		XCTAssertEqual(try! json.getString(at: "msg"), "help")
-		XCTAssertEqual(try! json.getString(at: "argument"), "rnorm")
+		let json = try! decoder.decode(JsonResponse.self, from: data)
+		XCTAssertEqual(json.msg, "help")
+		XCTAssertEqual(json.argument, "rnorm")
 	}
 	
 	func testSaveEnvironment() {
 		let data = try! coder.saveEnvironment()
-		let json = try! JSON(data: data)
-		XCTAssertEqual(try! json.getString(at: "msg"), "saveEnv")
+		let json = try! decoder.decode(JsonResponse.self, from: data)
+		XCTAssertEqual(json.msg, "saveEnv")
 	}
 	
 	func testExecuteScript() {
 		let tid = "foo1"
 		let script = "rnorm(20)"
 		let data = try! coder.executeScript(transactionId: tid, script: script)
-		let json = try! JSON(data: data)
-		XCTAssertEqual(try! json.getString(at: "msg"), "execScript")
-		XCTAssertEqual(try! json.getString(at: "argument"), script)
+		let json = try! decoder.decode(JsonResponse.self, from: data)
+		XCTAssertEqual(json.msg, "execScript")
+		XCTAssertEqual(json.argument, script)
 	}
 	
 	func testExecuteFile() {
 		let fileId = 23
 		let tid = "foo2"
 		let data = try! coder.executeFile(transactionId: tid, fileId: fileId, fileVersion: 2)
-		let json = try! JSON(data: data)
-		XCTAssertEqual(try! json.getString(at: "msg"), "execFile")
-		XCTAssertEqual(try! json.getInt(at: "clientData", "fileId"), fileId)
+		let json = try! decoder.decode(JsonResponse.self, from: data)
+		XCTAssertEqual(json.msg, "execFile")
+		XCTAssertEqual(json.clientData?["fileId"], fileId)
 	}
 
 	func testToggleWatch() {
 		let data = try! coder.toggleVariableWatch(enable: true)
-		let json = try! JSON(data: data)
-		XCTAssertEqual(try! json.getString(at: "msg"), "toggleVariableWatch")
-		XCTAssertEqual(try! json.getString(at: "argument"), "")
-		XCTAssertEqual(try! json.getBool(at: "watch"), true)
+		let json = try! decoder.decode(JsonResponse.self, from: data)
+		XCTAssertEqual(json.msg, "toggleVariableWatch")
+		XCTAssertEqual(json.argument, "")
+		XCTAssertEqual(json.watch, true)
 	}
 	
 	func testClose() {
 		let data = try! coder.close()
-		let json = try! JSON(data: data)
-		XCTAssertEqual(try! json.getString(at: "msg"), "close")
-		XCTAssertEqual(try! json.getString(at: "argument"), "")
+		let json = try! decoder.decode(JsonResponse.self, from: data)
+		XCTAssertEqual(json.msg, "close")
+		XCTAssertEqual(json.argument, "")
 	}
 	
 	func testListVariables() {
 		let data = try! coder.listVariables(deltaOnly: true)
-		let json = try! JSON(data: data)
-		XCTAssertEqual(try! json.getBool(at: "delta"), true)
-		XCTAssertEqual(try! json.getString(at: "msg"), "listVariables")
-		XCTAssertEqual(try! json.getString(at: "argument"), "")
+		let json = try! decoder.decode(JsonResponse.self, from: data)
+		XCTAssertEqual(json.msg, "listVariables")
+		XCTAssertEqual(json.argument, "")
+		XCTAssertEqual(json.delta, true)
 	}
 	
 	func testOpen() {
@@ -101,13 +110,13 @@ class ComputeCoderTests: XCTestCase {
 		let dbUser = "rc2"
 		let dbName = "rc2d"
 		let data = try! coder.openConnection(wspaceId: wspaceId, sessionId: sessionId, dbhost: dbHost, dbuser: dbUser, dbname: dbName)
-		let json = try! JSON(data: data)
-		XCTAssertEqual(try! json.getString(at: "msg"), "open")
-		XCTAssertEqual(try! json.getInt(at: "wspaceId"), wspaceId)
-		XCTAssertEqual(try! json.getInt(at: "sessionRecId"), sessionId)
-		XCTAssertEqual(try! json.getString(at: "dbhost"), dbHost)
-		XCTAssertEqual(try! json.getString(at: "dbuser"), dbUser)
-		XCTAssertEqual(try! json.getString(at: "dbname"), dbName)
+		let response = try! decoder.decode(ComputeCoder.OpenCommand.self, from: data)
+		XCTAssertEqual(response.msg, "open")
+		XCTAssertEqual(response.wspaceId, wspaceId)
+		XCTAssertEqual(response.sessionRecId, sessionId)
+		XCTAssertEqual(response.dbhost, dbHost)
+		XCTAssertEqual(response.dbuser, dbUser)
+		XCTAssertEqual(response.dbname, dbName)
 	}
 	
 	// MARK: - Response tests
@@ -231,7 +240,7 @@ class ComputeCoderTests: XCTestCase {
 	// MARK: - helper methods
 	private func queryId(for transId: String) -> Int {
 		let reqData = try! coder.executeScript(transactionId: transId, script: "rnorm(20)")
-		let reqJson = try! JSON(data: reqData)
-		return try! reqJson.getInt(at: "queryId")
+		let response = try! decoder.decode(ComputeCoder.ExecuteQuery.self, from: reqData)
+		return response.queryId
 	}
 }

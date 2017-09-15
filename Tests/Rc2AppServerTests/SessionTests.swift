@@ -1,6 +1,5 @@
 import XCTest
 @testable import Rc2AppServer
-import Freddy
 import Rc2Model
 import PerfectNet
 @testable import PerfectWebSockets

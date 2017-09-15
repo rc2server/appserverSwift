@@ -8,17 +8,15 @@ import Foundation
 import servermodel
 import PerfectHTTP
 import PerfectCrypto
-import Freddy
 
 fileprivate let psecret = "32342fsa"
 
-class AuthManager {
-	let dao: Rc2DAO
+class AuthManager: BaseHandler {
 	let tokenDao: LoginTokenDAO
 	
-	init(dao: Rc2DAO) {
-		self.dao = dao
-		self.tokenDao = dao.createTokenDAO()
+	override init(settings: AppSettings) {
+		self.tokenDao = settings.dao.createTokenDAO()
+		super.init(settings: settings)
 	}
 	
 	func authRoutes() -> [Route] {
@@ -31,17 +29,15 @@ class AuthManager {
 	func login(request: HTTPRequest, response: HTTPResponse) {
 		//make sure we were sent json
 		guard request.header(.contentType) == jsonType,
-			let jsonString = request.postBodyString
+			let jsonBytes = request.postBodyBytes
 			else {
 				response.setBody(string: "json required")
 				response.completed(status: .badRequest)
 				return
 		}
 		do {
-			let json = try JSON(jsonString: jsonString)
-			let login = try json.getString(at: "login")
-			let password = try json.getString(at: "password")
-			guard let user = try self.dao.getUser(login: login, password: password) else {
+			let params: LoginParams = try settings.decode(data: Data(Array.init(jsonBytes)))
+			guard let user = try self.settings.dao.getUser(login: params.login, password: params.password) else {
 				//invalid login
 				response.setBody(string: "invalid login or password")
 				response.completed(status: .unauthorized)
@@ -57,8 +53,8 @@ class AuthManager {
 			}
 			let token = try encoder.sign(alg: .hs256, key: psecret)
 			//send json data
-			let responseJson = JSON(["token": .string(token)])
-			response.setBody(string: try responseJson.serializeString())
+			let responseData = try settings.encode(LoginResponse(token: token))
+			response.bodyBytes.append(contentsOf: responseData.makeBytes())
 			response.addHeader(.contentEncoding, value: jsonType)
 			response.completed()
 			return
@@ -76,5 +72,14 @@ class AuthManager {
 		}
 		_ = try? tokenDao.invalidate(token: token)
 		response.completed()
+	}
+	
+	struct LoginParams: Codable {
+		let login: String
+		let password: String
+	}
+	
+	struct LoginResponse: Codable {
+		let token: String
 	}
 }

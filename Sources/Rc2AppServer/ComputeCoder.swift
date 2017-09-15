@@ -227,7 +227,7 @@ class ComputeCoder {
 	}
 
 	// MARK: - private structs for command serialization
-	private struct OpenCommand: Encodable {
+	struct OpenCommand: Codable {
 		let msg = "open"
 		let argument = ""
 		let wspaceId: Int
@@ -279,7 +279,7 @@ class ComputeCoder {
 		}
 	}
 	
-	private struct ExecuteQuery: Encodable {
+	struct ExecuteQuery: Codable {
 		let msg = "execScript"
 		let queryId: Int
 		let argument: String
