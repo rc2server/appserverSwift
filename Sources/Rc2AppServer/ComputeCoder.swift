@@ -23,10 +23,8 @@ class ComputeCoder {
 	// MARK: - initialization
 	/// creates an object that generates the for commands to send to the compute engine
 	init() {
-		encoder.dataEncodingStrategy = .base64
 		encoder.dateEncodingStrategy = .millisecondsSince1970
 		encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
-		decoder.dataDecodingStrategy = .base64
 		decoder.dateDecodingStrategy = .millisecondsSince1970
 		decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
 	}

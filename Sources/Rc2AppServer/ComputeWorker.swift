@@ -32,8 +32,8 @@ public class ComputeWorker {
 	let workspace: Workspace
 	let sessionId: Int
 	private(set) weak var delegate: ComputeWorkerDelegate?
-	private let encoder = JSONEncoder()
-	private let decoder = JSONDecoder()
+	private let encoder = AppSettings.createJSONEncoder()
+	private let decoder = AppSettings.createJSONDecoder()
 	private let compute = ComputeCoder()
 	
 	public init(workspace: Workspace, sessionId: Int, socket: NetTCP, settings: AppSettings, delegate: ComputeWorkerDelegate) {
@@ -42,11 +42,7 @@ public class ComputeWorker {
 		self.socket = socket
 		self.settings = settings
 		self.delegate = delegate
-
-		decoder.dataDecodingStrategy = .base64
-		decoder.dateDecodingStrategy = .millisecondsSince1970
-		decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
-}
+	}
 	
 	public func start() {
 		do {

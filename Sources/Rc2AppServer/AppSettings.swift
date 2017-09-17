@@ -19,6 +19,19 @@ public struct AppSettings {
 	/// the decoder used, implementation detail.
 	private let decoder: JSONDecoder
 	
+	public static func createJSONEncoder() -> JSONEncoder {
+		let encoder = JSONEncoder()
+		encoder.dateEncodingStrategy = .secondsSince1970
+		encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
+		return encoder
+	}
+
+	public static func createJSONDecoder() -> JSONDecoder {
+		let decoder = JSONDecoder()
+		decoder.dateDecodingStrategy = .secondsSince1970
+		decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
+		return decoder
+	}
 	/// Initializes from parameters and `config.json`
 	/// 
 	/// - Parameter dataDirURL: URL containing resources used by the application.
@@ -28,14 +41,8 @@ public struct AppSettings {
 		self.dataDirURL = dataDirURL
 		self.dao = dao
 
-		encoder = JSONEncoder()
-		encoder.dataEncodingStrategy = .base64
-		encoder.dateEncodingStrategy = .secondsSince1970
-		encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
-		decoder = JSONDecoder()
-		decoder.dataDecodingStrategy = .base64
-		decoder.dateDecodingStrategy = .secondsSince1970
-		decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "Inf", negativeInfinity: "-Inf", nan: "NaN")
+		self.encoder = AppSettings.createJSONEncoder()
+		self.decoder = AppSettings.createJSONDecoder()
 
 		do {
 			let configUrl = dataDirURL.appendingPathComponent("config.json")
