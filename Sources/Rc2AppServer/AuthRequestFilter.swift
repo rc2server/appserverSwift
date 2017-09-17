@@ -33,7 +33,7 @@ class AuthRequestFilter: HTTPRequestFilter {
 		}
 		//extract the bearer token
 		let prefix = "Bearer "
-		let tokenIndex = rawHeader.index(rawHeader.startIndex, offsetBy: prefix.characters.count)
+		let tokenIndex = rawHeader.index(rawHeader.startIndex, offsetBy: prefix.count)
 		let token = String(rawHeader[tokenIndex...])
 		print("token \(token)")
 		// parse and verify the token

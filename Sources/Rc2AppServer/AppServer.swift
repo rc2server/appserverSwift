@@ -13,6 +13,10 @@ import CommandLineKit
 import PerfectWebSockets
 
 public let jsonType = "application/json"
+// sysexits.h is not part of linux
+#if os(Linux)
+	let EX_USAGE: Int32 = 64
+#endif
 
 open class AppServer {
 	public enum Errors: Error {
