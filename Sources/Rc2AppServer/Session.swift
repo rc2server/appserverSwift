@@ -302,21 +302,20 @@ extension Session {
 	func handleHelpResponse(topic: String, paths: [String]) {
 		var outPaths = [String: String]()
 		paths.forEach { value in
-			if let rng = value.range(of: "/library/") {
-				//strip off everything before "/library"
-				let idx = value.index(rng.upperBound, offsetBy: -1)
-				var aPath = String(value[idx...])
-				//replace "help" with "html"
-				aPath = aPath.replacingOccurrences(of: "/help/", with: "/html/")
-				aPath.append(".html") // add file extension
-				// split components
-				var components = value.split(separator: "/")
-				let funName = components.last!
-				let pkgName = components.count > 3 ? components[components.count - 3] : "Base"
-				let title = funName + " (" + pkgName + ")"
-				//add to outPaths with the display title as key, massaged path as value
-				outPaths[title] = aPath
-			}
+			guard let rng = value.range(of: "/library/") else { return }
+			//strip off everything before "/library"
+			let idx = value.index(rng.upperBound, offsetBy: -1)
+			var aPath = String(value[idx...])
+			//replace "help" with "html"
+			aPath = aPath.replacingOccurrences(of: "/help/", with: "/html/")
+			aPath.append(".html") // add file extension
+			// split components
+			var components = value.split(separator: "/")
+			let funName = components.last!
+			let pkgName = components.count > 3 ? components[components.count - 3] : "Base"
+			let title = String(funName + " (" + pkgName + ")")
+			//add to outPaths with the display title as key, massaged path as value
+			outPaths[title] = aPath
 		}
 		let helpData = SessionResponse.HelpData(topic: topic, items: outPaths)
 		broadcastToAllClients(object: SessionResponse.help(helpData))
