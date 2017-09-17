@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import Dispatch
 import Node
 import PostgreSQL
 

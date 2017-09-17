@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import Dispatch
 import PostgreSQL
 import PerfectLib
 import Rc2Model

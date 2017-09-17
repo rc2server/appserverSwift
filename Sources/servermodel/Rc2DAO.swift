@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import Dispatch
 import PostgreSQL
 import Node
 import Rc2Model

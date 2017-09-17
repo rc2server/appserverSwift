@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import Dispatch
 import PerfectLib
 import Rc2Model
 import servermodel
