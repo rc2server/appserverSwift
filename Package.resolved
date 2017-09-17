@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/PerfectlySoft/Perfect-COpenSSL.git",
         "state": {
           "branch": null,
-          "revision": "d32588707fae5fbd7288c5b0a1969cf9f83ed62d",
-          "version": "2.0.5"
+          "revision": "87b6d1f313887fa11bd75e157a3678f066eec981",
+          "version": "2.0.6"
         }
       },
       {
@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/vapor-community/cpostgresql.git",
         "state": {
           "branch": null,
-          "revision": "04794fa3b69d9f5f31f4511d803e265c5eaad4e0",
-          "version": "2.0.0"
+          "revision": "33f0f94f023ab61ccd0ba2f076dd6a448be853e3",
+          "version": "2.1.0"
         }
       },
       {
@@ -56,15 +56,6 @@
         }
       },
       {
-        "package": "Freddy",
-        "repositoryURL": "https://github.com/bignerdranch/Freddy.git",
-        "state": {
-          "branch": null,
-          "revision": "1b09f84c0d954601b1a840801588e6f4942a8cb1",
-          "version": "3.0.2"
-        }
-      },
-      {
         "package": "Node",
         "repositoryURL": "https://github.com/vapor/node.git",
         "state": {
@@ -78,8 +69,8 @@
         "repositoryURL": "https://github.com/PerfectlySoft/Perfect-Crypto.git",
         "state": {
           "branch": null,
-          "revision": "b202021b9ddf4eef3318597526fb07d4a86b4cfa",
-          "version": "1.0.9"
+          "revision": "596cd8961ad1981d65eb07ea07cdda6345f6104a",
+          "version": "1.1.1"
         }
       },
       {
@@ -96,8 +87,8 @@
         "repositoryURL": "https://github.com/PerfectlySoft/Perfect-HTTPServer.git",
         "state": {
           "branch": null,
-          "revision": "80148a8197b900559543e9616f2c314b5d36e3fc",
-          "version": "2.3.2"
+          "revision": "783de8b2ea06058fb4fd7df66e9a7d4a398b3648",
+          "version": "2.3.4"
         }
       },
       {
@@ -146,12 +137,21 @@
         }
       },
       {
+        "package": "PostgreSQL",
+        "repositoryURL": "https://github.com/mlilback/postgresql.git",
+        "state": {
+          "branch": null,
+          "revision": "5efa27f6dbf51434475de5a429d2eb7ea74eab11",
+          "version": "2.0.2"
+        }
+      },
+      {
         "package": "Signals",
         "repositoryURL": "https://github.com/IBM-Swift/BlueSignals.git",
         "state": {
           "branch": null,
-          "revision": "99ac410f8ad4a75f0ec9a9d72512d5028e804253",
-          "version": "0.9.48"
+          "revision": "9a0b0bc422d0e3466cc41fe5cede0e9fac11df7c",
+          "version": "0.9.49"
         }
       },
       {
