@@ -22,6 +22,8 @@ To generate an xcodeproj, use `swift package generate-xcodeproj --xcconfig-overr
 
 To compile from the command line on macOS, use `swift  build -Xswiftc "-target" -Xswiftc x86_64-apple-macosx10.12`
 
+For linux, the line `link "COpenSSL"` needs to be removed from `.build/checkouts/Perfect-COpenSSL-Linux.git/COpenSSL/include/modulemodulemap`. This is temporary, and a patch is pending.
+
 ## integration testing
 
 start docker containers with:
