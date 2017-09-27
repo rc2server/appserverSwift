@@ -169,7 +169,7 @@ extension Session {
 				try worker?.send(data: data)
 			}
 		} catch {
-			Log.logger.info(message: "error handling execute", true)
+			Log.logger.info(message: "error handling execute \(error.localizedDescription)", true)
 		}
 	}
 	

@@ -8,6 +8,7 @@ import Foundation
 import servermodel
 import PerfectHTTP
 import PerfectCrypto
+import PerfectLib
 
 fileprivate let psecret = "32342fsa"
 
@@ -37,8 +38,10 @@ class AuthManager: BaseHandler {
 		}
 		do {
 			let params: LoginParams = try settings.decode(data: Data(Array.init(jsonBytes)))
+			Log.logger.info(message: "attempting login for '\(params.login)' using '\(params.password)'", true)
 			guard let user = try self.settings.dao.getUser(login: params.login, password: params.password) else {
 				//invalid login
+				Log.info(message: "invalid login for \(params.login)", evenIdents: true)
 				response.setBody(string: "invalid login or password")
 				response.completed(status: .unauthorized)
 				return
@@ -60,7 +63,7 @@ class AuthManager: BaseHandler {
 			return
 		} catch {
 			print("invalid login json \(error)")
-			response.completed(status: .badRequest)
+			response.completed(status: .unauthorized)
 			return
 		}		
 	}
