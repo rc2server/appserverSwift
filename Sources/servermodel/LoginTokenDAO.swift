@@ -8,6 +8,7 @@ import Foundation
 import PostgreSQL
 import Node
 import Rc2Model
+import PerfectLib
 
 /// Simple wrapper around contents stored in the authentication token
 public struct LoginToken {
@@ -45,14 +46,18 @@ public final class LoginTokenDAO {
 	/// - Returns: a new token
 	/// - Throws: a .dbError if the sql command fails
 	public func createToken(user: User) throws -> LoginToken {
-		guard let conn = try? pgdb.makeConnection(),
-			let result = try? conn.execute("insert into logintoken (userId) values ($1) returning id", [user.id]),
-			let array = result.array, array.count == 1
-		else {
+		guard let conn = try? pgdb.makeConnection() else { throw ModelError.failedToOpenConnection }
+		var array: [Node]?
+		do {
+			let result = try conn.execute("insert into logintoken (userId) values ($1) returning id", [user.id])
+			 array = result.array
+		} catch {
+			Log.logger.error(message: "failed to insert logintoken \(error)", true)
 			throw ModelError.dbError
 		}
+		guard let realarray = array, realarray.count == 1 else { throw ModelError.dbError }
 		do {
-			return LoginToken(try array[0].get("id"), user.id)
+			return LoginToken(try realarray[0].get("id"), user.id)
 		} catch {
 			throw ModelError.dbError
 		}
