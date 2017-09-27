@@ -120,9 +120,9 @@ class ComputeCoder {
 		switch msg {
 		case "openresponse":
 			guard let success = json["success"] as? Bool else { throw ComputeError.invalidFormat }
-			let errorDetails = json["errorDetails"] as? String
+			let errorDetails = json["errorMessage"] as? String
 			if !success && errorDetails == nil { throw ComputeError.invalidFormat }
-			return Response.open(success: success, errorMessage: json["errorDetails"] as? String)
+			return Response.open(success: success, errorMessage: errorDetails)
 		case "execComplete":
 			guard let expect = json["expectShowOutput"] as? Bool, let transId = transId else { throw ComputeError.invalidFormat }
 			var fileId: Int?
