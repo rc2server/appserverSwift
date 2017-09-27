@@ -25,6 +25,7 @@ open class AppServer {
 	let server = HTTPServer()
 	var requestFilters = [(HTTPRequestFilter, HTTPFilterPriority)]()
 	var routes = [Route]()
+	private var listenPort = 8088
 	private(set) var dao: Rc2DAO!
 	private var authManager: AuthManager!
 	private var dataDirURL: URL!
@@ -58,10 +59,13 @@ open class AppServer {
 		let cli = CommandLine()
 		let dataDir = StringOption(shortFlag: "D", longFlag: "datadir", required: true, helpMessage: "Specify path to directory with data files")
 		cli.addOption(dataDir)
+		let portOption = IntOption(shortFlag: "p", helpMessage: "Port to listen to (defaults to 8088)")
+		cli.addOption(portOption)
 		do {
 			try cli.parse()
 			dataDirURL = URL(fileURLWithPath: dataDir.value!)
 			guard dataDirURL.hasDirectoryPath else { throw Errors.invalidDataDirectory }
+			if let pvalue = portOption.value { listenPort = pvalue }
 		} catch {
 			cli.printUsage(error)
 			exit(EX_USAGE)
@@ -99,10 +103,10 @@ open class AppServer {
 			robj.add(defaultRoutes())
 		}
 		server.addRoutes(robj)
-		server.serverPort = 8181
+		server.serverPort = UInt16(listenPort)
 
 		do {
-			// Launch the HTTP server on port 8181
+			// Launch the HTTP server
 			try server.start()
 		} catch PerfectError.networkError(let err, let msg) {
 			print("Network error thrown: \(err) \(msg)")
