@@ -56,6 +56,7 @@ class FileHandler: BaseHandler {
 		}
 		do {
 			try settings.dao.setFile(bytes: data, fileId: fileId)
+			response.completed(status: .noContent)
 		} catch {
 			Log.logger.warning(message: "failed to save file contents: \(error)", true)
 			handle(error: SessionError.databaseUpdateFailed, response: response)

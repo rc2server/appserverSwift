@@ -17,7 +17,7 @@ class ModelHandler: BaseHandler {
 
 	func routes() -> [Route] {
 		var routes = [Route]()
-		routes.append(Route(method: .post, uri: "/wspace", handler: createWorkspace))
+		routes.append(Route(method: .post, uri: "/proj/{projId}/wspace", handler: createWorkspace))
 		return routes
 	}
 	
@@ -26,7 +26,7 @@ class ModelHandler: BaseHandler {
 		do {
 			guard let userId = request.login?.userId,
 				let user = try settings.dao.getUser(id: userId),
-				let projectIdStr = request.header(.custom(name: "Rc2-ProjectId")),
+				let projectIdStr = request.urlVariables["projId"],
 				let projectId = Int(projectIdStr),
 				let wspaceName = request.header(.custom(name: "Rc2-WorkspaceName")),
 				wspaceName.count > 1,
@@ -48,17 +48,18 @@ class ModelHandler: BaseHandler {
 				fileUrls = try FileManager.default.contentsOfDirectory(at: uploadUrl, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants])
 			}
 			defer { if let zipUrl = zipUrl { try? FileManager.default.removeItem(at: zipUrl) } }
-			_ = try settings.dao.createWorkspace(project: project, name: wspaceName, insertingFiles: fileUrls)
+			let wspace = try settings.dao.createWorkspace(project: project, name: wspaceName, insertingFiles: fileUrls)
 			let bulkInfo = try settings.dao.getUserInfo(user: user)
+			let result = CreateWorkspaceResult(wspaceId: wspace.id, bulkInfo: bulkInfo)
 			response.bodyBytes.removeAll()
-			response.bodyBytes.append(contentsOf: try settings.encode(bulkInfo))
+			response.bodyBytes.append(contentsOf: try settings.encode(result))
 			response.setHeader(.contentType, value: MimeType.forExtension("json"))
-			response.completed()
+			response.completed(status: .created)
 		} catch {
 			response.completed(status: .notFound)
 		}
 	}
-	
+
 	private func unpackFiles(request: HTTPRequest) throws -> URL? {
 		guard let bytes = request.postBodyBytes, bytes.count > 0 else { return nil }
 		let myZip = Zip()
