@@ -131,9 +131,10 @@ class ComputeCoder {
 			}
 			return Response.execComplete(ExecCompleteData(fileId: fileId, imageIds: json["images"] as? [Int], batchId: json["imgBatch"] as? Int, transactionId: transId, expectShowOutput: expect))
 		case "results":
-			guard let isErr = json["stderr"] as? Bool, let transId = transId, let text = json["string"] as? String
+			// FIXME: does this send stderr or stdout or both? really shouldn't be a guard
+			guard let isNotErr = json["stdout"] as? Bool, let transId = transId, let text = json["string"] as? String
 			else { throw ComputeError.invalidFormat }
-			return Response.results(ResultsData(text: text, isStdErr: isErr, transactionId: transId))
+			return Response.results(ResultsData(text: text, isStdErr: !isNotErr, transactionId: transId))
 		case "showoutput":
 			guard let fileId = json["fileId"] as? Int,
 				let fileVersion = json["fileVersion"] as? Int,
