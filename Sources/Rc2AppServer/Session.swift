@@ -258,7 +258,8 @@ extension Session {
 		isOpen = success
 		if !success, let err = errorMessage {
 			Log.logger.error(message: "Error opening compute connection: \(err)", true)
-			broadcastToAllClients(object: SessionError.failedToConnectToCompute)
+			let errorObj = SessionResponse.error(SessionResponse.ErrorData(transactionId: nil, error: SessionError.failedToConnectToCompute))
+			broadcastToAllClients(object: errorObj)
 		}
 	}
 	
