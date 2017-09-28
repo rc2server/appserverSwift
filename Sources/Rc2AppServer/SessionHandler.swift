@@ -74,11 +74,8 @@ public class SessionHandler: WebSocketSessionHandler {
 			socket.close()
 			return
 		}
-		data.withUnsafeBytes { bytes in
-			socket.sendBinaryMessage(bytes: bytes.pointee, final: true) {
-				socket.close()
-			}
-		}
+		Log.logger.error(message: "unknown error from server: \(String(data: data, encoding: .utf8)!)", true)
+		socket.close()
 	}
 }
 
