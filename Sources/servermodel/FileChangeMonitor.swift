@@ -10,6 +10,24 @@ import PostgreSQL
 import PerfectLib
 import Rc2Model
 
+extension String {
+	func after(integerIndex: Int) -> Substring {
+		precondition(integerIndex < count && integerIndex > 0)
+		let start = self.index(startIndex, offsetBy: integerIndex)
+		return self[start...]
+	}
+	
+	func to(integerIndex: Int) -> Substring {
+		precondition(integerIndex < count && integerIndex >= 0)
+		let end = self.index(startIndex, offsetBy: integerIndex)
+		return self[startIndex...end]
+	}
+	
+	func stringTo(integerIndex: Int) -> String {
+		return String(self.to(integerIndex: integerIndex))
+	}
+}
+
 class FileChangeMonitor {
 	typealias Observer = (SessionResponse.FileChangedData) -> Void
 	
@@ -40,16 +58,17 @@ class FileChangeMonitor {
 			Log.logger.warning(message: "FileChangeMonitor got error from database: \(error!)", true)
 			return
 		}
-		let msgParts = msg.components(separatedBy: "/")
-		guard msgParts.count > 3, let wspaceId = Int(msgParts[2]),
-			//let fileStr = Optional.some(msgParts[1]),
+		let msgParts = msg.after(integerIndex: 1).split(separator: "/")
+		guard msgParts.count == 3,
+			let wspaceId = Int(msgParts[0]),
 			let fileId = Int(msgParts[1])
 		else {
 			Log.logger.warning(message: "received unknown message \(msg) from db on rcfile channel", true)
 			return
 		}
+		let msgType = String(msg[msg.startIndex...msg.startIndex]) // a lot of work to get first character as string
 		Log.logger.info(message: "received rcfile notification for file \(fileId) in wspace \(wspaceId)", true)
-		guard let changeType = SessionResponse.FileChangedData.FileChangeType(rawValue: msgParts[0])
+		guard let changeType = SessionResponse.FileChangedData.FileChangeType(rawValue: msgType)
 			else { Log.logger.warning(message: "invalid change notifiction from db \(msg)", true); return }
 		var file: Rc2Model.File?
 		if let results = try? dbConnection.execute(query: "select * from rcfile where id = \(fileId)", values: []),
