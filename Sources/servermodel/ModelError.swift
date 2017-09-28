@@ -10,4 +10,5 @@ public enum ModelError: Error {
 	case duplicateObject
 	case notFound
 	case dbError
+	case failedToOpenConnection
 }
