@@ -141,6 +141,8 @@ extension Session: SessionSocketDelegate {
 		switch command {
 		case .help(let topic):
 			handleHelp(topic: topic, socket: socket)
+		case .info:
+			handleInfo(socket: socket)
 		case .execute(let params):
 			handleExecute(params: params)
 		case .executeFile(let params):
@@ -199,6 +201,15 @@ extension Session {
 	
 	private func handleSave(params: SessionCommand.SaveParams, socket: SessionSocket) {
 		
+	}
+	
+	private func handleInfo(socket: SessionSocket) {
+		do {
+			let response = SessionResponse.InfoData(workspace: workspace, files: try settings.dao.getFiles(workspace: workspace))
+			broadcastToAllClients(object: SessionResponse.info(response))
+		} catch {
+			Log.logger.warning(message: "error sending info: \(error)", true)
+		}
 	}
 	
 	private func handleHelp(topic: String, socket: SessionSocket) {
