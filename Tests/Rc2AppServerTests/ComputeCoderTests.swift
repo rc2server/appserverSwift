@@ -43,10 +43,11 @@ class ComputeCoderTests: XCTestCase {
 	
 	// MARK: - request tests
 	func testGetVariable() {
-		let data = try! coder.getVariable(name: "foo123")
+		let data = try! coder.getVariable(name: "foo123", clientIdentifier: 11)
 		let json = try! decoder.decode(JsonResponse.self, from: data)
 		XCTAssertEqual(json.msg, "getVariable")
 		XCTAssertEqual(json.argument, "foo123")
+		XCTAssertEqual(json.clientData?["clientIdent"], 11)
 	}
 	
 	func testHelp() {
