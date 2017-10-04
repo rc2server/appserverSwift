@@ -12,6 +12,7 @@ import servermodel
 
 /// object to transform data send/received from the compute engine
 class ComputeCoder {
+	private let clientDataKey = "clientData"
 	// MARK: - properties
 	private let encoder = JSONEncoder()
 	private let decoder = JSONDecoder()
@@ -34,8 +35,8 @@ class ComputeCoder {
 	/// 
 	/// - Parameter name: The name of the variable to get
 	/// - Returns: data to send to compute server
-	func getVariable(name: String) throws -> Data {
-		let obj = GenericCommand(msg: "getVariable", argument: name)
+	func getVariable(name: String, clientIdentifier: Int? = nil) throws -> Data {
+		let obj = GetVariableCommand(name: name, clientIdentifier: clientIdentifier)
 		return try encoder.encode(obj)
 	}
 
@@ -126,7 +127,7 @@ class ComputeCoder {
 		case "execComplete":
 			guard let expect = json["expectShowOutput"] as? Bool, let transId = transId else { throw ComputeError.invalidFormat }
 			var fileId: Int?
-			if let clientData = json["clientData"] as? [String: Int], let parsedFileId = clientData["fileId"] {
+			if let clientData = json[clientDataKey] as? [String: Int], let parsedFileId = clientData["fileId"] {
 				fileId = parsedFileId
 			}
 			return Response.execComplete(ExecCompleteData(fileId: fileId, imageIds: json["images"] as? [Int], batchId: json["imgBatch"] as? Int, transactionId: transId, expectShowOutput: expect))
@@ -150,7 +151,13 @@ class ComputeCoder {
 			return Response.variables(ListVariablesData(variables: vars, delta: delta))
 		case "variablevalue":
 			guard let value = Variable(dictionary: json) else { throw ComputeError.invalidFormat }
-			return Response.variableValue(value)
+			var ident: Int? = nil
+			if let clientData = json[clientDataKey] as? [String: Int],
+				let cident = clientData[GetVariableCommand.clientIdentKey]
+			{
+				ident = cident
+			}
+			return Response.variableValue(VariableData(variable: value, clientId: ident))
 		case "help":
 			guard let topic = json["topic"] as? String, let paths = json["paths"] as? [String] else { throw ComputeError.invalidFormat }
 			return Response.help(topic: topic, paths: paths)
@@ -173,7 +180,7 @@ class ComputeCoder {
 		case help(topic: String, paths: [String])
 		case results(ResultsData)
 		case showFile(ShowFileData)
-		case variableValue(Variable)
+		case variableValue(VariableData)
 		case variables(ListVariablesData)
 	}
 	
@@ -209,6 +216,11 @@ class ComputeCoder {
 		let delta: Bool
 	}
 	
+	struct VariableData {
+		let variable: Variable
+		let clientId: Int?
+	}
+	
 	// MARK: - internal methods
 	private func createQueryId(_ transactionId: String) -> Int {
 		var qid: Int = 0
@@ -240,6 +252,22 @@ class ComputeCoder {
 	private struct GenericCommand: Encodable {
 		let msg: String
 		let argument: String
+	}
+	
+	private struct GetVariableCommand: Encodable {
+		static let clientIdentKey = "clientIdent"
+		let msg = "getVariable"
+		let argument: String
+		let clientData: [String: Int]?
+		
+		init(name: String, clientIdentifier: Int? = nil) {
+			argument = name
+			if let cident = clientIdentifier {
+				clientData = [GetVariableCommand.clientIdentKey: cident]
+			} else {
+				clientData = nil
+			}
+		}
 	}
 	
 	private struct ListVariableCommand: Encodable {

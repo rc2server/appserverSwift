@@ -205,7 +205,12 @@ extension Session {
 	}
 	
 	private func handleGetVariable(name: String, socket: SessionSocket) {
-		
+		do { 
+			let cmd = try coder.getVariable(name: name, clientIdentifier: socket.hashValue)
+			try worker?.send(data: cmd)
+		} catch {
+			Log.logger.warning(message: "error getting variable: \(error)", true)
+		}
 	}
 	
 	private func handleWatchVariables(enable: Bool, socket: SessionSocket) {
@@ -260,7 +265,7 @@ extension Session: ComputeWorkerDelegate {
 			case .showFile(let data):
 				handleShowFileResponse(data: data)
 			case .variableValue(let data):
-				handleVariableValueResponse(value: data)
+				handleVariableValueResponse(data: data)
 			case .variables(let data):
 				handleVariableListResponse(data: data)
 			}
@@ -346,8 +351,13 @@ extension Session {
 		broadcastToAllClients(object: SessionResponse.help(helpData))
 	}
 	
-	func handleVariableValueResponse(value: Variable) {
-		broadcastToAllClients(object: SessionResponse.variableValue(value))
+	func handleVariableValueResponse(data: ComputeCoder.VariableData) {
+		let responseObject = SessionResponse.variableValue(data.variable)
+		if let clientId = data.clientId {
+			broadcast(object: responseObject, toClient: clientId)
+		} else {
+			broadcastToAllClients(object: responseObject)
+		}
 	}
 	
 	func handleVariableListResponse(data: ComputeCoder.ListVariablesData) {
