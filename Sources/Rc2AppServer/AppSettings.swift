@@ -116,7 +116,13 @@ public struct AppConfiguration: Decodable {
 		computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
 		let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
 		computeDbHost = cdb == nil ? dbHost : cdb!
-		// default to 5 MB
-		maximumWebSocketFileSizeKB = try container.decodeIfPresent(Int.self, forKey: .maximumWebSocketFileSizeKB) ?? 1024 * 5
+		// default to 600 KB. Some kind of issues with sending messages larger than UInt16.max
+		if let desiredSize = try container.decodeIfPresent(Int.self, forKey: .maximumWebSocketFileSizeKB),
+			desiredSize <= 600, desiredSize > 0
+		{
+			maximumWebSocketFileSizeKB = desiredSize
+		} else {
+			maximumWebSocketFileSizeKB = 600
+		}
 	}
 }
