@@ -87,6 +87,19 @@ extension Session {
 			Log.logger.warning(message: "error sending to all client (\(error))", true)
 		}
 	}
+	
+	func broadcast<T: Encodable>(object: T, toClient clientId: Int) {
+		do {
+			let data = try settings.encode(object)
+			if let socket = sockets.first(where: { $0.hashValue == clientId } ) {
+				lockQueue.sync {
+					socket.send(data: data, completion: { () in } )
+				}
+			}
+		} catch {
+			Log.logger.warning(message: "error sending to all client (\(error))", true)
+		}
+	}
 }
 
 // MARK: - Socket Management
