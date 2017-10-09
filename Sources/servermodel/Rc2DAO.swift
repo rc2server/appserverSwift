@@ -132,6 +132,7 @@ open class Rc2DAO {
 		_ = try conn.execute(query, [sessionId])
 	}
 	
+	// MARK: - Projects
 	/// get project with specific id
 	///
 	/// - Parameters:
@@ -157,6 +158,7 @@ open class Rc2DAO {
 		return try projectNodes.flatMap { try Project(node: $0) }
 	}
 	
+	// MARK: - Workspaces
 	/// get workspace with specific id
 	///
 	/// - Parameters:
@@ -208,6 +210,7 @@ open class Rc2DAO {
 		}
 	}
 	
+	// MARK: - Files
 	/// insert an array of files from the local file system
 	///
 	/// - Parameters:
@@ -307,6 +310,66 @@ open class Rc2DAO {
 		}
 	}
 	
+	/// Deletes a file
+	///
+	/// - Parameter fileId: the id of the file to delete
+	/// - Throws: any database error
+	public func delete(fileId: Int) throws {
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		try queue.sync { () throws -> Void in
+			let conn = try pgdb.makeConnection()
+			try conn.transaction { () -> Void in
+				_ = try conn.execute("delete from rcfile where id = \(fileId)")
+			}
+		}
+	}
+	
+	/// Renames a file
+	///
+	/// - Parameter fileId: the id of the file to rename
+	/// - Parameter version: the last known version of the file to delete
+	/// - Parameter newName: the new name for the file
+	/// - Returns: the updated file object
+	/// - Throws: if the file has been updated, or any other database error
+	public func rename(fileId: Int, version: Int, newName: String) throws -> File {
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		return try queue.sync { () throws -> File in
+			let conn = try pgdb.makeConnection()
+			return try conn.transaction { () -> File in
+				let rawResult = try conn.execute("update rcfile set name = $1 where id = \(fileId) and version = \(version) returning *", [Node(stringLiteral: newName)])
+				guard let array = rawResult.array, array.count == 1 else { throw DBError.queryFailed }
+				return try File(node: array[0])
+			}
+		}
+	}
+	
+	/// duplicates a file
+	///
+	/// - Parameters:
+	///   - fileId: the id of the source file
+	///   - name: the name to give the duplicate
+	/// - Returns: the newly created File object
+	/// - Throws: any database errors
+	public func duplicate(fileId: Int, withName name: String) throws -> File {
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		return try queue.sync { () throws -> File in
+			let conn = try pgdb.makeConnection()
+			return try conn.transaction { () -> File in
+				let rawResult = try conn.execute("""
+					with curfile as ( select * from rcfile where id = \(fileId) )
+					insert into rcfile (wspaceid, name, datecreated, filesize)
+					values ((select wspaceid from curfile), $1, (select datecreated from curfile),
+					(select filesize from curfile)) returning *;
+					""", [Node(stringLiteral: name)])
+				guard let array = rawResult.array, array.count == 1 else { throw DBError.queryFailed }
+				let file = try File(node: array[0])
+				try conn.execute("insert into rcfiledata (id, bindata) values (\(file.id), (select bindata from rcfiledata where id = \(fileId)))")
+				return file
+			}
+		}
+	}
+
+	// MARK: - Images
 	/// Returns array of session images based on array of ids
 	///
 	/// - Parameter imageIds: Array of image ids

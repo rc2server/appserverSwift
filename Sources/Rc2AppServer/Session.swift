@@ -155,7 +155,7 @@ extension Session: SessionSocketDelegate {
 		case .help(let topic):
 			handleHelp(topic: topic, socket: socket)
 		case .info:
-			handleInfo(socket: socket)
+			sendSessionInfo(socket: socket)
 		case .execute(let params):
 			handleExecute(params: params)
 		case .executeFile(let params):
@@ -201,7 +201,33 @@ extension Session {
 	}
 
 	private func handleFileOperation(params: SessionCommand.FileOperationParams) {
-		
+		var cmdError: SessionError?
+		var fileId = params.fileId
+		var dupfile: Rc2Model.File? = nil
+		do {
+			switch params.operation {
+			case .remove:
+				try settings.dao.delete(fileId: params.fileId)
+			case .rename:
+				guard let name = params.newName else { throw SessionError.invalidRequest }
+				_ = try settings.dao.rename(fileId: params.fileId, version: params.fileVersion, newName: name)
+			case .duplicate:
+				guard let name = params.newName else { throw SessionError.invalidRequest }
+				dupfile = try settings.dao.duplicate(fileId: fileId, withName: name)
+				fileId = dupfile!.id
+				break
+			}
+		} catch let serror as SessionError {
+			Log.logger.warning(message: "file operation \(params.operation) on \(params.fileId) failed: \(serror)", true)
+			cmdError = serror
+		} catch {
+			Log.logger.warning(message: "file operation \(params.operation) on \(params.fileId) failed: \(error)", true)
+			cmdError = SessionError.databaseUpdateFailed
+		}
+
+		let data = SessionResponse.FileOperationData(transactionId: params.transactionId, operation: params.operation, success: cmdError == nil, fileId: fileId, file: dupfile, error: cmdError)
+		broadcastToAllClients(object: SessionResponse.fileOperation(data))
+		sendSessionInfo(socket: nil)
 	}
 	
 	private func handleGetVariable(name: String, socket: SessionSocket) {
@@ -221,7 +247,8 @@ extension Session {
 		
 	}
 	
-	private func handleInfo(socket: SessionSocket) {
+	/// send updated workspace info
+	private func sendSessionInfo(socket: SessionSocket?) {
 		do {
 			let response = SessionResponse.InfoData(workspace: workspace, files: try settings.dao.getFiles(workspace: workspace))
 			broadcastToAllClients(object: SessionResponse.info(response))
@@ -366,6 +393,7 @@ extension Session {
 	}
 	
 	func handleFileChanged(data: SessionResponse.FileChangedData) {
+		Log.logger.info(message: "got file change \(data)", true)
 		broadcastToAllClients(object: SessionResponse.fileChanged(data))
 	}
 	
