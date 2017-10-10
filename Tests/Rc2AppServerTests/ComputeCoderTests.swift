@@ -135,7 +135,7 @@ class ComputeCoderTests: XCTestCase {
 
 	func testOpenFailure() {
 		let json = """
-	{"msg": "openresponse", "success": false, "errorDetails": "test error" }
+	{"msg": "openresponse", "success": false, "errorMessage": "test error" }
 """
 		let resp = try! coder.parseResponse(data: json.data(using: .utf8)!)
 		guard case let ComputeCoder.Response.open(success: success, errorMessage: openErrorString) = resp else {
@@ -212,7 +212,7 @@ class ComputeCoderTests: XCTestCase {
 	func testResults() {
 		let qid = queryId(for: "foo2")
 		let json = """
-		{ "msg": "results", "stderr": false, "string": "R output", "queryId": \(qid) }
+		{ "msg": "results", "stdout": true, "string": "R output", "queryId": \(qid) }
 		"""
 		let resp = try! coder.parseResponse(data: json.data(using: .utf8)!)
 		guard case let ComputeCoder.Response.results(results) = resp
