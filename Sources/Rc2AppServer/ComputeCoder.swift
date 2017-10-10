@@ -144,11 +144,21 @@ class ComputeCoder {
 			else { throw ComputeError.invalidFormat }
 			return Response.showFile(ShowFileData(fileId: fileId, fileVersion: fileVersion, fileName: fileName, transactionId: transId))
 		case "variableupdate":
-			guard let delta = json["delta"] as? Bool,
-				let data = json["variables"] as? [String: [String: Any]],
-				let vars = Optional.some(data.flatMap({ Variable(dictionary: $0.1) }))
-			else { throw ComputeError.invalidFormat }
-			return Response.variables(ListVariablesData(variables: vars, delta: delta))
+			guard let delta = json["delta"] as? Bool else { throw ComputeError.invalidFormat }
+			let variableData: ListVariablesData
+			if delta {
+				guard let data = json["variables"] as? [String: Any],
+					let assignedData = data["assigned"] as? [String: [String: Any]],
+					let removed = data["removed"] as? [String]
+				else { throw ComputeError.invalidFormat }
+				let assigned = assignedData.flatMap({ Variable(dictionary: $0.1) })
+				variableData = ListVariablesData(variables: assigned, removed: removed, delta: true)
+			} else {
+				guard let data = json["variables"] as? [String: [String: Any]] else { throw ComputeError.invalidFormat }
+				let vars = data.flatMap({ Variable(dictionary: $0.1) })
+				variableData = ListVariablesData(variables: vars, removed: [], delta: delta)
+			}
+			return Response.variables(variableData)
 		case "variablevalue":
 			guard let value = Variable(dictionary: json) else { throw ComputeError.invalidFormat }
 			var ident: Int? = nil
@@ -213,6 +223,7 @@ class ComputeCoder {
 	
 	struct ListVariablesData {
 		let variables: [Variable]
+		let removed: [String]
 		let delta: Bool
 	}
 	

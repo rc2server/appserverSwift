@@ -257,8 +257,8 @@ extension Session {
 		let shouldWatch = sockets.map({ $0.watchingVariables }).contains(true)
 		// either toggle if overall change in state, otherwise ask for updated list so socket can know all the current values
 		do {
-			var cmd = try coder.toggleVariableWatch(enable: watchingVariables)
-			if shouldWatch == watchingVariables {
+			var cmd = try coder.toggleVariableWatch(enable: shouldWatch)
+			if shouldWatch, shouldWatch == watchingVariables {
 				// ask for updated values
 				cmd = try coder.listVariables(deltaOnly: false)
 			}
@@ -430,7 +430,7 @@ extension Session {
 	
 	func handleVariableListResponse(data: ComputeCoder.ListVariablesData) {
 		// we send to everyone, even those not watching
-		let varData = SessionResponse.ListVariablesData(values: data.variables, delta: data.delta)
+		let varData = SessionResponse.ListVariablesData(values: data.variables, removed: data.removed, delta: data.delta)
 		broadcastToAllClients(object: SessionResponse.variables(varData))
 	}
 	
