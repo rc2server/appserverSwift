@@ -23,6 +23,7 @@ class SessionSocket: Hashable {
 	let settings: AppSettings
 	let delegate: SessionSocketDelegate
 	weak var session: Session?
+	var watchingVariables: Bool = false
 	
 	required init(socket: WebSocket, user: User, settings: AppSettings, delegate: SessionSocketDelegate) {
 		self.socket = socket

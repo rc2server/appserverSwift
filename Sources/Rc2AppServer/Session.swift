@@ -23,6 +23,7 @@ class Session {
 	let coder: ComputeCoder
 	private var sessionId: Int!
 	private var isOpen: Bool = false
+	private var watchingVariables = false
 	
 	// MARK: - initialization/startup
 	
@@ -132,6 +133,15 @@ extension Session {
 				lastClientDisconnectTime = Date()
 			}
 		}
+		// stop watching variables if currently watching and no sockets want to watch them
+		if watchingVariables && !sockets.map({ $0.watchingVariables }).contains(true) {
+			do {
+				try worker?.send(data: try coder.toggleVariableWatch(enable: false))
+				watchingVariables = false
+			} catch {
+				Log.logger.warning(message: "error disabling variable watch: \(error)", true)
+			}
+		}
 	}
 }
 
@@ -239,8 +249,24 @@ extension Session {
 		}
 	}
 	
+	// toggle variable watch on the compute server if it needs to be based on this request
 	private func handleWatchVariables(enable: Bool, socket: SessionSocket) {
-		
+		guard enable != socket.watchingVariables else { return } // nothing to change
+		socket.watchingVariables = enable
+		// should we still be watching?
+		let shouldWatch = sockets.map({ $0.watchingVariables }).contains(true)
+		// either toggle if overall change in state, otherwise ask for updated list so socket can know all the current values
+		do {
+			var cmd = try coder.toggleVariableWatch(enable: watchingVariables)
+			if shouldWatch == watchingVariables {
+				// ask for updated values
+				cmd = try coder.listVariables(deltaOnly: false)
+			}
+			try worker?.send(data: cmd)
+			watchingVariables = shouldWatch
+		} catch {
+			Log.logger.warning(message: "error toggling variable watch: \(error)", true)
+		}
 	}
 	
 	/// save file changes and broadcast appropriate response
@@ -403,6 +429,7 @@ extension Session {
 	}
 	
 	func handleVariableListResponse(data: ComputeCoder.ListVariablesData) {
+		// we send to everyone, even those not watching
 		let varData = SessionResponse.ListVariablesData(values: data.variables, delta: data.delta)
 		broadcastToAllClients(object: SessionResponse.variables(varData))
 	}
