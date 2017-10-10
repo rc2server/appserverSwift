@@ -243,8 +243,23 @@ extension Session {
 		
 	}
 	
+	/// save file changes and broadcast appropriate response
 	private func handleSave(params: SessionCommand.SaveParams, socket: SessionSocket) {
-		
+		var serror: SessionError?
+		var updatedFile: Rc2Model.File?
+		do {
+			updatedFile = try settings.dao.setFile(bytes: Array<UInt8>(params.content), fileId: params.fileId, fileVersion: params.fileVersion)
+		} catch let dberr as Rc2DAO.DBError {
+			serror = SessionError(dbError: dberr)
+			if serror == .unknown {
+				Log.logger.warning(message: "unknown error saving file: \(dberr)", true)
+			}
+		} catch {
+			Log.logger.warning(message: "unknown error saving file: \(error)", true)
+			serror = SessionError.unknown
+		}
+		let responseData = SessionResponse.SaveData(transactionId: params.transactionId, success: serror != nil, file: updatedFile, error: serror)
+		broadcastToAllClients(object: SessionResponse.save(responseData))
 	}
 	
 	/// send updated workspace info
@@ -404,3 +419,19 @@ extension Session {
 	}
 }
 
+extension SessionError {
+	init(dbError: Rc2DAO.DBError) {
+		switch dbError {
+		case .queryFailed:
+			self = .databaseUpdateFailed
+		case .connectionFailed:
+			self = .unknown
+		case .invalidFile:
+			self = .invalidRequest
+		case .versionMismatch:
+			self = .fileVersionMismatch
+		case .noSuchRow:
+			self = .invalidRequest
+		}
+	}
+}

@@ -11,10 +11,12 @@ import Node
 import Rc2Model
 
 open class Rc2DAO {
-	enum DBError: Error {
+	public enum DBError: Error {
 		case queryFailed
 		case connectionFailed
 		case invalidFile
+		case versionMismatch
+		case noSuchRow
 	}
 	
 	private(set) var pgdb: PostgreSQL.Database?
@@ -298,14 +300,25 @@ open class Rc2DAO {
 	/// - Parameters:
 	///   - bytes: the updated content of the file
 	///   - fileId: the id of the file
+	///   - fileVersion: the version of the file being overwritten. If not nil, will throw error if file has been updated since that version
 	/// - Throws: any database error
-	public func setFile(bytes: [UInt8], fileId: Int) throws {
+	@discardableResult
+	public func setFile(bytes: [UInt8], fileId: Int, fileVersion: Int? = nil) throws -> File
+	{
 		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
-		try queue.sync { () throws -> Void in
+		return try queue.sync { () throws -> File in
 			let conn = try pgdb.makeConnection()
-			try conn.transaction { () -> Void in
-				try conn.execute("update rcfile set version = version + 1, lastmodified = now(), filesize = \(bytes.count) where id = \(fileId)")
+			return try conn.transaction { () -> File in
+				// if a previous version was specified, make sure that is the current version or throw appropriate error
+				if let fversion = fileVersion {
+					let rawResult = try conn.execute("select id from rcfile where version = \(fversion) and id = \(fileId)")
+					guard rawResult.array?.count == 1 else { throw DBError.versionMismatch }
+				}
+				let rawRow = try conn.execute("update rcfile set version = version + 1, lastmodified = now(), filesize = \(bytes.count) where id = \(fileId) returning *")
+				guard let array = rawRow.array, array.count == 1 else { throw DBError.noSuchRow }
+				let updatedFile = try File(node: array[0])
 				try conn.execute("update rcfiledata set bindata = $1", [Bind(bytes: bytes, configuration: conn.configuration)])
+				return updatedFile
 			}
 		}
 	}
