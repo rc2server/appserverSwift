@@ -151,16 +151,16 @@ class ComputeCoder {
 					let assignedData = data["assigned"] as? [String: [String: Any]],
 					let removed = data["removed"] as? [String]
 				else { throw ComputeError.invalidFormat }
-				let assigned = assignedData.flatMap({ Variable(dictionary: $0.1) })
+				let assigned = assignedData.flatMap({ try? Variable.makeFromLegacy(dict: $0.1) })
 				variableData = ListVariablesData(variables: assigned, removed: removed, delta: true)
 			} else {
 				guard let data = json["variables"] as? [String: [String: Any]] else { throw ComputeError.invalidFormat }
-				let vars = data.flatMap({ Variable(dictionary: $0.1) })
+				let vars = data.flatMap({ try? Variable.makeFromLegacy(dict: $0.1) })
 				variableData = ListVariablesData(variables: vars, removed: [], delta: delta)
 			}
 			return Response.variables(variableData)
 		case "variablevalue":
-			guard let value = Variable(dictionary: json) else { throw ComputeError.invalidFormat }
+			guard let value = try? Variable.makeFromLegacy(dict: json) else { throw ComputeError.invalidFormat }
 			var ident: Int? = nil
 			if let clientData = json[clientDataKey] as? [String: Int],
 				let cident = clientData[GetVariableCommand.clientIdentKey]
