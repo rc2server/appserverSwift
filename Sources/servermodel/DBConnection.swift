@@ -59,6 +59,6 @@ extension Connection: DBConnection {
 	public func makeListenDispatchSource(toChannel channel: String, queue: DispatchQueue, callback: @escaping (_ note: DBNotification?, _ err: Error?) -> Void) throws -> DispatchSourceRead
 	{
 		let castCallback = callback as (Connection.Notification?, Error?) -> Void
-		return try makeListenDispatchSource(toChannel: channel, queue: queue, callback: castCallback)
+		return try listen(toChannel: channel, queue: queue, callback: castCallback)
 	}
 }
