@@ -354,7 +354,7 @@ extension Session {
 	func handleOpenResponse(success: Bool, errorMessage: String?) {
 		isOpen = success
 		if !success, let err = errorMessage {
-			Log.logger.error(message: "Error opening compute connection: \(err)", true)
+			Log.logger.error(message: "Error in response to open compute connection: \(err)", true)
 			let errorObj = SessionResponse.error(SessionResponse.ErrorData(transactionId: nil, error: SessionError.failedToConnectToCompute))
 			broadcastToAllClients(object: errorObj)
 		}
