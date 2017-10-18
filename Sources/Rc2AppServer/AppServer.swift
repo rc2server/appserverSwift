@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import Dispatch
 import PerfectLib
 import PerfectHTTP
 import PerfectHTTPServer
@@ -38,6 +39,13 @@ open class AppServer {
 
 	/// creates a server with the authentication filter installed
 	public init() {
+		// install handler to catch ctl-C and docker stop. don't start on main: Perfect doesn't run it
+		let signalSrc = DispatchSource.makeSignalSource(signal: SIGINT, queue: .global())
+		signalSrc.setEventHandler { [weak self] in
+			print("got SIGINT. Terminating.")
+			self?.server.stop()
+		}
+		signalSrc.resume()
 	}
 	
 	/// returns the default routes for the application
