@@ -8,7 +8,7 @@ import Foundation
 import Dispatch
 import PerfectWebSockets
 import PerfectHTTP
-import PerfectLib
+import LoggerAPI
 import Rc2Model
 
 public class SessionHandler: WebSocketSessionHandler {
@@ -25,7 +25,7 @@ public class SessionHandler: WebSocketSessionHandler {
 	public func handleSession(request req: HTTPRequest, socket: WebSocket)
 	{
 		guard let loginToken = req.login else {
-			Log.logger.error(message: "ws attempt without login", false)
+			Log.error("ws attempt without login")
 			reportError(socket: socket, error: SessionError.permissionDenied)
 			return
 		}
@@ -43,7 +43,7 @@ public class SessionHandler: WebSocketSessionHandler {
 			let rawUser = try? settings.dao.getUser(id: wspace.userId),
 			let user = rawUser
 		else {
-			Log.logger.warning(message: "user doesn't have permission for requested workspace", true)
+			Log.warning("user doesn't have permission for requested workspace")
 			reportError(socket: socket, error: SessionError.permissionDenied)
 			return
 		}
@@ -70,11 +70,11 @@ public class SessionHandler: WebSocketSessionHandler {
 	fileprivate func reportError(socket: WebSocket, error: SessionError)
 	{
 		guard let data = try? settings.encode(error) else {
-			Log.logger.error(message: "failed to encode error", true)
+			Log.error("failed to encode error")
 			socket.close()
 			return
 		}
-		Log.logger.error(message: "unknown error from server: \(String(data: data, encoding: .utf8)!)", true)
+		Log.error("unknown error from server: \(String(data: data, encoding: .utf8)!)")
 		socket.close()
 	}
 }

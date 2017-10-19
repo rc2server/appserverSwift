@@ -7,8 +7,8 @@
 import Foundation
 import Dispatch
 import PostgreSQL
-import PerfectLib
 import Rc2Model
+import LoggerAPI
 
 extension String {
 	func after(integerIndex: Int) -> Substring {
@@ -55,7 +55,7 @@ class FileChangeMonitor {
 	// internal to allow unit testing
 	internal func handleNotification(notification: DBNotification?, error: Error?) {
 		guard let msg = notification?.payload else {
-			Log.logger.warning(message: "FileChangeMonitor got error from database: \(error!)", true)
+			Log.warning("FileChangeMonitor got error from database: \(error!)")
 			return
 		}
 		let msgParts = msg.after(integerIndex: 1).split(separator: "/")
@@ -63,13 +63,13 @@ class FileChangeMonitor {
 			let wspaceId = Int(msgParts[0]),
 			let fileId = Int(msgParts[1])
 		else {
-			Log.logger.warning(message: "received unknown message \(msg) from db on rcfile channel", true)
+			Log.warning("received unknown message \(msg) from db on rcfile channel")
 			return
 		}
 		let msgType = String(msg[msg.startIndex...msg.startIndex]) // a lot of work to get first character as string
-		Log.logger.info(message: "received rcfile notification for file \(fileId) in wspace \(wspaceId)", true)
+		Log.warning("received rcfile notification for file \(fileId) in wspace \(wspaceId)")
 		guard let changeType = SessionResponse.FileChangedData.FileChangeType(rawValue: msgType)
-			else { Log.logger.warning(message: "invalid change notifiction from db \(msg)", true); return }
+			else { Log.warning("invalid change notifiction from db \(msg)"); return }
 		var file: Rc2Model.File?
 		if let results = try? dbConnection.execute(query: "select * from rcfile where id = \(fileId)", values: []),
 			let array = results.array,

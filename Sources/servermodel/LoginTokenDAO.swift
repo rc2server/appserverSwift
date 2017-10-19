@@ -8,7 +8,7 @@ import Foundation
 import PostgreSQL
 import Node
 import Rc2Model
-import PerfectLib
+import LoggerAPI
 
 /// Simple wrapper around contents stored in the authentication token
 public struct LoginToken {
@@ -52,7 +52,7 @@ public final class LoginTokenDAO {
 			let result = try conn.execute("insert into logintoken (userId) values ($1) returning id", [user.id])
 			 array = result.array
 		} catch {
-			Log.logger.error(message: "failed to insert logintoken \(error)", true)
+			Log.error("failed to insert logintoken \(error)")
 			throw ModelError.dbError
 		}
 		guard let realarray = array, realarray.count == 1 else { throw ModelError.dbError }

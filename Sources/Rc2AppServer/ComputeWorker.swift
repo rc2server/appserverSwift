@@ -8,6 +8,7 @@ import Foundation
 import Dispatch
 import PerfectNet
 import PerfectLib
+import LoggerAPI
 import Rc2Model
 
 fileprivate let ConnectTimeout = 5
@@ -48,7 +49,7 @@ public class ComputeWorker {
 		do {
 			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: settings.config.computeDbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName))
 		} catch {
-			Log.logger.error(message: "Error opening compute connection: \(error)", true)
+			Log.error("Error opening compute connection: \(error)")
 			// TODO close Session and tell client
 		}
 		readNext()
@@ -75,7 +76,7 @@ public class ComputeWorker {
 	
 	private func readNext() {
 		socket.readBytesFully(count: 8, timeoutSeconds: -1) { bytes in
-			guard let bytes = bytes else { Log.logger.error(message: "readBytes got nil", true); return }
+			guard let bytes = bytes else { Log.error("readBytes got nil"); return }
 			var readError: ComputeError?
 			do {
 				let size = try self.verifyMagicHeader(bytes: bytes)
@@ -85,7 +86,7 @@ public class ComputeWorker {
 					self.delegate?.handleCompute(data: data)
 				}
 			} catch {
-				Log.logger.error(message: "got invalid header from client", true)
+				Log.error("got invalid header from client")
 				//TODO: signal error to client
 				if let err = error as? ComputeError {
 					readError = err
@@ -105,7 +106,7 @@ public class ComputeWorker {
 	private func verifyMagicHeader(bytes: [UInt8]) throws -> Int {
 		let (header, dataLen) = UnsafePointer<UInt8>(bytes).withMemoryRebound(to: UInt32.self, capacity: 2) { return (UInt32(bigEndian: $0.pointee), UInt32(bigEndian: $0.advanced(by: 1).pointee))}
 		// tried all kinds of withUnsafePointer & withMemoryRebound and could not figure it out.
-		Log.logger.info(message: "compute sent \(dataLen) worth of json", true)
+		Log.info("compute sent \(dataLen) worth of json")
 		guard header == 0x21 else { throw ComputeError.invalidHeader }
 		return Int(dataLen)
 	}

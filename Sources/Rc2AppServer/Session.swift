@@ -6,7 +6,7 @@
 
 import Foundation
 import Dispatch
-import PerfectLib
+import LoggerAPI
 import Rc2Model
 import servermodel
 import PerfectNet
@@ -38,7 +38,7 @@ class Session {
 		do {
 			sessionId = try settings.dao.createSessionRecord(wspaceId: workspace.id)
 		} catch {
-			Log.logger.error(message: "failed to create session record \(error)", true)
+			Log.error("failed to create session record \(error)")
 			throw error
 		}
 		let net = NetTCP()
@@ -46,12 +46,12 @@ class Session {
 			try net.connect(address: settings.config.computeHost, port: settings.config.computePort, timeoutSeconds: settings.config.computeTimeout)
 			{ socket in
 				guard let socket = socket else { fatalError() }
-				Log.logger.info(message: "connected to compute server", true)
+				Log.info("connected to compute server")
 				self.worker = ComputeWorker(workspace: self.workspace, sessionId: self.sessionId, socket: socket, settings: self.settings, delegate: self)
 				self.worker?.start()
 			}
 		} catch {
-			Log.logger.error(message: "failed to connect to compute engine", true)
+			Log.error("failed to connect to compute engine")
 			throw error
 		}
 		try settings.dao.addFileChangeObserver(wspaceId: workspace.id, callback: handleFileChanged)
@@ -85,7 +85,7 @@ extension Session {
 				sockets.forEach { $0.send(data: data) { () in } }
 			}
 		} catch {
-			Log.logger.warning(message: "error sending to all client (\(error))", true)
+			Log.warning("error sending to all client (\(error))")
 		}
 	}
 	
@@ -98,7 +98,7 @@ extension Session {
 				}
 			}
 		} catch {
-			Log.logger.warning(message: "error sending to all client (\(error))", true)
+			Log.warning("error sending to all client (\(error))")
 		}
 	}
 }
@@ -118,7 +118,7 @@ extension Session {
 			let info = try settings.dao.getUserInfo(user: socket.user)
 			broadcastToAllClients(object: SessionResponse.connected(info))
 		} catch {
-			Log.logger.error(message: "failed to send BulkUserInfo \(error)", true)
+			Log.error("failed to send BulkUserInfo \(error)")
 		}
 	}
 	
@@ -139,7 +139,7 @@ extension Session {
 				try worker?.send(data: try coder.toggleVariableWatch(enable: false))
 				watchingVariables = false
 			} catch {
-				Log.logger.warning(message: "error disabling variable watch: \(error)", true)
+				Log.warning("error disabling variable watch: \(error)")
 			}
 		}
 	}
@@ -160,7 +160,7 @@ extension Session: SessionSocketDelegate {
 	///   - command: the command to handle
 	///   - socket: the client that sent the command
 	func handle(command: SessionCommand, socket: SessionSocket) {
-		Log.logger.info(message: "got command: \(command)", true)
+		Log.info("got command: \(command)")
 		switch command {
 		case .help(let topic):
 			handleHelp(topic: topic, socket: socket)
@@ -194,7 +194,7 @@ extension Session {
 				try worker?.send(data: data)
 			}
 		} catch {
-			Log.logger.info(message: "error handling execute \(error.localizedDescription)", true)
+			Log.info("error handling execute \(error.localizedDescription)")
 		}
 	}
 	
@@ -206,7 +206,7 @@ extension Session {
 				try worker?.send(data: data)
 			}
 		} catch {
-			Log.logger.info(message: "error handling execute", true)
+			Log.info("error handling execute")
 		}
 	}
 
@@ -228,10 +228,10 @@ extension Session {
 				break
 			}
 		} catch let serror as SessionError {
-			Log.logger.warning(message: "file operation \(params.operation) on \(params.fileId) failed: \(serror)", true)
+			Log.warning("file operation \(params.operation) on \(params.fileId) failed: \(serror)")
 			cmdError = serror
 		} catch {
-			Log.logger.warning(message: "file operation \(params.operation) on \(params.fileId) failed: \(error)", true)
+			Log.warning("file operation \(params.operation) on \(params.fileId) failed: \(error)")
 			cmdError = SessionError.databaseUpdateFailed
 		}
 
@@ -245,7 +245,7 @@ extension Session {
 			let cmd = try coder.getVariable(name: name, clientIdentifier: socket.hashValue)
 			try worker?.send(data: cmd)
 		} catch {
-			Log.logger.warning(message: "error getting variable: \(error)", true)
+			Log.warning("error getting variable: \(error)")
 		}
 	}
 	
@@ -265,7 +265,7 @@ extension Session {
 			try worker?.send(data: cmd)
 			watchingVariables = shouldWatch
 		} catch {
-			Log.logger.warning(message: "error toggling variable watch: \(error)", true)
+			Log.warning("error toggling variable watch: \(error)")
 		}
 	}
 	
@@ -278,10 +278,10 @@ extension Session {
 		} catch let dberr as Rc2DAO.DBError {
 			serror = SessionError(dbError: dberr)
 			if serror == .unknown {
-				Log.logger.warning(message: "unknown error saving file: \(dberr)", true)
+				Log.warning("unknown error saving file: \(dberr)")
 			}
 		} catch {
-			Log.logger.warning(message: "unknown error saving file: \(error)", true)
+			Log.warning("unknown error saving file: \(error)")
 			serror = SessionError.unknown
 		}
 		let responseData = SessionResponse.SaveData(transactionId: params.transactionId, success: serror != nil, file: updatedFile, error: serror)
@@ -294,7 +294,7 @@ extension Session {
 			let response = SessionResponse.InfoData(workspace: workspace, files: try settings.dao.getFiles(workspace: workspace))
 			broadcastToAllClients(object: SessionResponse.info(response))
 		} catch {
-			Log.logger.warning(message: "error sending info: \(error)", true)
+			Log.warning("error sending info: \(error)")
 		}
 	}
 	
@@ -304,7 +304,7 @@ extension Session {
 			try data?.write(to: URL(fileURLWithPath: "/tmp/url-out.txt"))
 			try worker?.send(data: data!)
 		} catch {
-			Log.logger.warning(message: "error sending help message: \(error)", true)
+			Log.warning("error sending help message: \(error)")
 		}
 	}
 }
@@ -315,7 +315,7 @@ extension Session: ComputeWorkerDelegate {
 	/// - Parameter data: The binary message from the server
 	func handleCompute(data: Data) {
 		if let str = String(data: data, encoding: .utf8) {
-			Log.logger.info(message: "got \(data.count) bytes: \(str)", true)
+			Log.info("got \(data.count) bytes: \(str)")
 		}
 		do {
 			let response = try coder.parseResponse(data: data)
@@ -338,14 +338,14 @@ extension Session: ComputeWorkerDelegate {
 				handleVariableListResponse(data: data)
 			}
 		} catch {
-			Log.logger.error(message: "failed to parse response from data \(error)", true)
+			Log.error("failed to parse response from data \(error)")
 		}
 	}
 	
 	/// Handle an error while processing data from the compute engine
 	/// - Parameter error: the local error code
 	func handleCompute(error: ComputeError) {
-		Log.logger.error(message: "got error from compute engine \(error)", true)
+		Log.error("got error from compute engine \(error)")
 	}
 }
 
@@ -354,7 +354,7 @@ extension Session {
 	func handleOpenResponse(success: Bool, errorMessage: String?) {
 		isOpen = success
 		if !success, let err = errorMessage {
-			Log.logger.error(message: "Error in response to open compute connection: \(err)", true)
+			Log.error("Error in response to open compute connection: \(err)")
 			let errorObj = SessionResponse.error(SessionResponse.ErrorData(transactionId: nil, error: SessionError.failedToConnectToCompute))
 			broadcastToAllClients(object: errorObj)
 		}
@@ -365,7 +365,7 @@ extension Session {
 		do {
 			images = try settings.dao.getImages(imageIds: data.imageIds)
 		} catch {
-			Log.logger.warning(message: "Error fetching images from compute \(error)", true)
+			Log.warning("Error fetching images from compute \(error)")
 		}
 		let cdata = SessionResponse.ExecCompleteData(transactionId: data.transactionId, batchId: data.batchId ?? 0, expectShowOutput: data.expectShowOutput, images: images)
 		broadcastToAllClients(object: SessionResponse.execComplete(cdata))
@@ -381,7 +381,7 @@ extension Session {
 			//refetch from database so we have updated information
 			//if file is too large, only send meta info
 			guard let file = try settings.dao.getFile(id: data.fileId, userId: workspace.userId) else {
-				Log.logger.warning(message: "failed to find file \(data.fileId) to show output", true)
+				Log.warning("failed to find file \(data.fileId) to show output")
 				handleErrorResponse(data: ComputeCoder.ComputeErrorData(code: .unknownFile, details: "unknown file requested", transactionId: data.transactionId))
 				return
 			}
@@ -392,7 +392,7 @@ extension Session {
 			let forClient = SessionResponse.ShowOutputData(transactionid: data.transactionId, file: file, fileData: fileData)
 			broadcastToAllClients(object: SessionResponse.showOutput(forClient))
 		} catch {
-			Log.logger.warning(message: "error handling show file: \(error)", true)
+			Log.warning("error handling show file: \(error)")
 		}
 	}
 	
@@ -435,7 +435,7 @@ extension Session {
 	}
 	
 	func handleFileChanged(data: SessionResponse.FileChangedData) {
-		Log.logger.info(message: "got file change \(data)", true)
+		Log.info("got file change \(data)")
 		broadcastToAllClients(object: SessionResponse.fileChanged(data))
 	}
 	

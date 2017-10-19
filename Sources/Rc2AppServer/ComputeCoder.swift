@@ -6,7 +6,7 @@
 
 import Foundation
 import Dispatch
-import PerfectLib
+import LoggerAPI
 import Rc2Model
 import servermodel
 
@@ -177,7 +177,7 @@ class ComputeCoder {
 			let edata = ComputeErrorData(code: ecode, details: json["errorDetails"] as? String, transactionId: transId)
 			return Response.error(edata)
 		default:
-			Log.logger.error(message: "unknown response from compute engine: \(msg)", true)
+			Log.error("unknown response from compute engine: \(msg)")
 			throw ComputeError.invalidFormat
 		}
 	}

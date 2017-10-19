@@ -8,7 +8,7 @@ import Foundation
 import servermodel
 import PerfectHTTP
 import PerfectCrypto
-import PerfectLib
+import LoggerAPI
 
 fileprivate let psecret = "32342fsa"
 
@@ -38,10 +38,10 @@ class AuthManager: BaseHandler {
 		}
 		do {
 			let params: LoginParams = try settings.decode(data: Data(Array.init(jsonBytes)))
-			Log.logger.info(message: "attempting login for '\(params.login)' using '\(params.password)'", true)
+			Log.info("attempting login for '\(params.login)' using '\(params.password)'")
 			guard let user = try self.settings.dao.getUser(login: params.login, password: params.password) else {
 				//invalid login
-				Log.info(message: "invalid login for \(params.login)", evenIdents: true)
+				Log.info("invalid login for \(params.login)")
 				response.setBody(string: "invalid login or password")
 				response.completed(status: .unauthorized)
 				return

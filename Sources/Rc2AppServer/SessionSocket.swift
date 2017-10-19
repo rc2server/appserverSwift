@@ -7,7 +7,7 @@
 import Foundation
 import Dispatch
 import PerfectWebSockets
-import PerfectLib
+import LoggerAPI
 import servermodel
 import Rc2Model
 
@@ -60,7 +60,7 @@ class SessionSocket: Hashable {
 				self?.closed()
 				return
 			default:
-				Log.logger.error(message: "got unhandled opcode \(opcode) from websocket", true)
+				Log.error("got unhandled opcode \(opcode) from websocket")
 			}
 			DispatchQueue.global().async { [weak self] in
 				self?.readNextMessage()
@@ -77,7 +77,7 @@ class SessionSocket: Hashable {
 			let command: SessionCommand = try settings.decode(data: data)
 			delegate.handle(command: command, socket: self)
 		} catch {
-			Log.logger.warning(message: "Got error decoding message from client", true)
+			Log.warning("Got error decoding message from client")
 		}
 	}
 	
