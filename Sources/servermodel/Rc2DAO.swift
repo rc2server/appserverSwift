@@ -9,6 +9,7 @@ import Dispatch
 import PostgreSQL
 import Node
 import Rc2Model
+import LoggerAPI
 
 open class Rc2DAO {
 	public enum DBError: Error {
@@ -111,6 +112,7 @@ open class Rc2DAO {
 		}
 		let result = try conn.execute(query, data)
 		guard let array = result.array, array.count == 1 else {
+			Log.verbose("failed to find user for login '\(login)' using password \(password.count)")
 			return nil
 		}
 		return try User(node: array[0])
@@ -122,6 +124,7 @@ open class Rc2DAO {
 		let query = "insert into sessionrecord (wspaceid) values ($1) returning id"
 		let result = try conn.execute(query, [wspaceId])
 		guard let array = result.array, array.count == 1 else {
+			Log.info("failed to create session record for \(wspaceId)")
 			throw DBError.queryFailed
 		}
 		return try array[0].get("id")

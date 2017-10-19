@@ -32,6 +32,7 @@ class AuthManager: BaseHandler {
 		guard request.header(.contentType) == jsonType,
 			let jsonBytes = request.postBodyBytes
 			else {
+				Log.info("login request w/o json")
 				response.setBody(string: "json required")
 				response.completed(status: .badRequest)
 				return
@@ -50,7 +51,7 @@ class AuthManager: BaseHandler {
 			let loginToken = try tokenDao.createToken(user: user)
 			guard let encoder = JWTCreator(payload: loginToken.contents) else {
 				//failed to encrypt password
-				print("failed to create jwt")
+				Log.warning("failed to create jwt")
 				response.completed(status: .internalServerError)
 				return
 			}
@@ -62,7 +63,7 @@ class AuthManager: BaseHandler {
 			response.completed()
 			return
 		} catch {
-			print("invalid login json \(error)")
+			Log.warning("invalid login json \(error)")
 			response.completed(status: .unauthorized)
 			return
 		}		
