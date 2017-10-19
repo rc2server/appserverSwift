@@ -12,12 +12,33 @@ import PerfectHTTPServer
 import servermodel
 import CommandLineKit
 import PerfectWebSockets
+import LoggerAPI
+import HeliumLogger
 
 public let jsonType = "application/json"
 // sysexits.h is not part of linux
 #if os(Linux)
 	let EX_USAGE: Int32 = 64
 #endif
+
+class LogStream: TextOutputStream {
+	let path: String
+	let fh: FileHandle
+	
+	init(_ path: String) {
+		self.path = path
+		let fd = open(path, O_CREAT|O_APPEND|O_WRONLY)
+		self.fh = FileHandle(fileDescriptor: fd)
+	}
+	public func write(_ string: String) {
+		fh.write(string.data(using: .utf8)!)
+	}
+	
+	deinit {
+		fh.closeFile()
+	}
+}
+
 
 open class AppServer {
 	public enum Errors: Error {
@@ -39,14 +60,10 @@ open class AppServer {
 
 	/// creates a server with the authentication filter installed
 	public init() {
-		// install handler to catch ctl-C and docker stop. don't start on main: Perfect doesn't run it
-		signal(SIGINT) { _ in
-//		let signalSrc = DispatchSource.makeSignalSource(signal: SIGINT, queue: .global())
-//		signalSrc.setEventHandler { [weak self] in
-			print("got SIGINT. Terminating.")
-			//self?.server.stop()
-		}
-//		signalSrc.resume()
+}
+	
+	public func stop() {
+		server.stop()
 	}
 	
 	/// returns the default routes for the application
@@ -86,7 +103,8 @@ open class AppServer {
 		dao = Rc2DAO()
 		parseCommandLine()
 		settings = AppSettings(dataDirURL: dataDirURL, dao: dao)
-
+		initializeLogging(path: settings.config.logfilePath)
+		
 		do {
 			try dao.connect(host: settings.config.dbHost, user: "rc2", database: "rc2")
 			authManager = AuthManager(settings: settings)
@@ -122,5 +140,12 @@ open class AppServer {
 		} catch {
 			print("unknown error: \(error)")
 		}
+	}
+	
+	private func initializeLogging(path: String) {
+		// setup logging
+		let stream = LogStream(path)
+		let logger = HeliumStreamLogger(.verbose, outputStream: stream)
+		Log.logger = logger
 	}
 }

@@ -91,6 +91,8 @@ public struct AppConfiguration: Decodable {
 	public let computeDbHost: String
 	/// The largest amount of file data to return over the websocket. Anything higher should be fetched via REST. In KB
 	public let maximumWebSocketFileSizeKB: Int
+	/// Path to store log files
+	public let logfilePath: String
 	
 	enum CodingKeys: String, CodingKey {
 		case dbHost
@@ -101,6 +103,7 @@ public struct AppConfiguration: Decodable {
 		case computeTimeout
 		case computeDbHost
 		case maximumWebSocketFileSizeKB
+		case logFilePath
 	}
 	
 	/// Initializes from serialization.
@@ -108,6 +111,7 @@ public struct AppConfiguration: Decodable {
 	/// - Parameter from: The decoder to deserialize from.
 	public init(from cdecoder: Decoder) throws {
 		let container = try cdecoder.container(keyedBy: CodingKeys.self)
+		logfilePath = try container.decodeIfPresent(String.self, forKey: .logFilePath) ?? "/tmp/appserver.log"
 		dbHost = try container.decodeIfPresent(String.self, forKey: .dbHost) ?? "dbserver"
 		dbUser = try container.decodeIfPresent(String.self, forKey: .dbUser) ?? "rc2"
 		dbName = try container.decodeIfPresent(String.self, forKey: .dbName) ?? "rc2"

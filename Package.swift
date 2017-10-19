@@ -14,6 +14,7 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
+		.package(url: "https://github.com/IBM-Swift/HeliumLogger.git", from: "1.7.1"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-HTTPServer.git", from: "2.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-WebSockets.git", from: "2.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/PerfectLib.git", from: "2.0.0"),
@@ -34,7 +35,7 @@ let package = Package(
             dependencies: ["Rc2AppServer"]),
         .target(
             name: "Rc2AppServer",
-            dependencies: ["PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "PerfectZip", "servermodel", "CommandLine", "Rc2Model", "Signals"]),
+            dependencies: ["PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "PerfectZip", "servermodel", "CommandLine", "Rc2Model", "Signals", "HeliumLogger"]),
         .target(
         	name: "servermodel",
         	dependencies: ["Node", "PostgreSQL", "Rc2Model"]),
