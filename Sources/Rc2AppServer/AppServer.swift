@@ -27,7 +27,7 @@ class LogStream: TextOutputStream {
 	
 	init(_ path: String) {
 		self.path = path
-		let fd = open(path, O_CREAT|O_APPEND|O_WRONLY)
+		let fd = open(path, O_CREAT|O_APPEND|O_WRONLY, 0666)
 		self.fh = FileHandle(fileDescriptor: fd)
 	}
 	public func write(_ string: String) {

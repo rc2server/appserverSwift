@@ -104,7 +104,7 @@ open class Rc2DAO {
 		let conn = connection == nil ? try pgdb.makeConnection() : connection!
 		var query = "select * from rcuser where login = $1"
 		var data = [login]
-		if password.characters.count == 0 {
+		if password.count == 0 {
 			query += " and passworddata IS NULL"
 		} else {
 			query += " and passworddata = crypt($2, passworddata)"
