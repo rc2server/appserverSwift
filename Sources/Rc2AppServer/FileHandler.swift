@@ -11,7 +11,7 @@ import Rc2Model
 
 class FileHandler: BaseHandler {
 	let fileNameHeader = "Rc2-Filename"
-	
+
 	func routes() -> [Route] {
 		var routes = [Route]()
 		routes.append(Route(method: .post, uri: "/file/create/{wspaceId}", handler: createFile))
@@ -19,7 +19,7 @@ class FileHandler: BaseHandler {
 		routes.append(Route(method: .get, uri: "/file/{fileId}", handler: downloadData))
 		return routes
 	}
-	
+
 	// create the sent file
 	func createFile(request: HTTPRequest, response: HTTPResponse) {
 		guard let wspaceIdStr = request.urlVariables["wspaceId"],
@@ -31,6 +31,7 @@ class FileHandler: BaseHandler {
 			handle(error: SessionError.fileNotFound, response: response)
 			return
 		}
+		Log.info("creating file \(filename) in wspace \(wspaceId)")
 		do {
 			let file = try settings.dao.insertFile(name: filename, wspaceId: wspaceId, bytes: data)
 			let data = try settings.encode(file)
@@ -42,7 +43,7 @@ class FileHandler: BaseHandler {
 			handle(error: SessionError.databaseUpdateFailed, response: response)
 		}
 	}
-	
+
 	// update the content of the specified file
 	func uploadData(request: HTTPRequest, response: HTTPResponse) {
 		guard let fileIdStr = request.urlVariables["fileId"],
@@ -54,6 +55,7 @@ class FileHandler: BaseHandler {
 				handle(error: SessionError.fileNotFound, response: response)
 				return
 		}
+		Log.info("updating file \(fileId)")
 		do {
 			try settings.dao.setFile(bytes: data, fileId: fileId)
 			response.completed(status: .noContent)
@@ -62,7 +64,7 @@ class FileHandler: BaseHandler {
 			handle(error: SessionError.databaseUpdateFailed, response: response)
 		}
 	}
-	
+
 	/// send the contents of the requested file
 	func downloadData(request: HTTPRequest, response: HTTPResponse) {
 		guard let fileIdStr = request.urlVariables["fileId"],
