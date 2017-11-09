@@ -84,8 +84,13 @@ extension Variable {
 			guard let ival = dict["value"] as? [Int] else { throw VariableError("int primitive with invalid value", dict) }
 			pvalue = .integer(ival)
 		case "d":
-			guard let dval = dict["value"] as? [Double] else { throw VariableError("double primitive with invalid value", dict) }
-			pvalue = .double(try parseDoubles(input: dval))
+			if let dval = dict["value"] as? [Double] {
+				pvalue = .double(try parseDoubles(input: dval))
+			} else if let ival = dict["value"] as? [Int] {
+				pvalue = .double(ival.map { Double($0) })
+			} else {
+				throw VariableError("double primitive with invalid value", dict)
+			}
 		case "s":
 			guard let sval = dict["value"] as? [String] else { throw VariableError("string primitive with invalid value", dict) }
 			pvalue = .string(sval)
