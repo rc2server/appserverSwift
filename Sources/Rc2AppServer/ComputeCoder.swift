@@ -157,7 +157,14 @@ class ComputeCoder {
 				var vars: [Variable]?
 				if !(json["variables"] is NSNull) {
 					guard let data = json["variables"] as? [String: [String: Any]] else { throw ComputeError.invalidFormat }
-					vars = data.flatMap({ try? Variable.makeFromLegacy(dict: $0.1) })
+					vars = data.flatMap({
+						do {
+							return try Variable.makeFromLegacy(dict: $0.1)
+						} catch {
+							Log.info("failed to parse legacy variable \($0.1): \(error)")
+							return nil
+						}
+					})
 				}
 				variableData = ListVariablesData(variables: vars, removed: [], delta: delta)
 			}
