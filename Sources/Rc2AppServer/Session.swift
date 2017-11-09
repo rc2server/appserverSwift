@@ -430,6 +430,7 @@ extension Session {
 	
 	func handleVariableListResponse(data: ComputeCoder.ListVariablesData) {
 		// we send to everyone, even those not watching
+		Log.info("handling list variable data with \(data.variables?.count ?? 0) variables")
 		let varData = SessionResponse.ListVariablesData(values: data.variables ?? [], removed: data.removed, delta: data.delta)
 		Log.info("forwarding \(data.variables?.count ?? 0) variables")
 		broadcastToAllClients(object: SessionResponse.variables(varData))

@@ -224,10 +224,12 @@ class ComputeCoder {
 		let transactionId: String
 	}
 	
-	struct ListVariablesData {
+	struct ListVariablesData: CustomStringConvertible {
 		let variables: [Variable]?
 		let removed: [String]
 		let delta: Bool
+		
+		var description: String { return "delta=\(delta), removed=\(removed), vars = \(variables ?? [])" }
 	}
 	
 	struct VariableData {
