@@ -222,7 +222,7 @@ class ComputeCoder {
 	}
 	
 	struct ListVariablesData {
-		let variables: [Variable]
+		let variables: [Variable]?
 		let removed: [String]
 		let delta: Bool
 	}
