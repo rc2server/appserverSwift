@@ -26,6 +26,7 @@ class ComputeCoderTests: XCTestCase {
 		("testExecuteScript", testExecuteScript),
 		("testToggleWatch", testToggleWatch),
 		("testListVariables", testListVariables),
+		("testNoVariablesInUpdate", testNoVariablesInUpdate),
 		]
 
 	struct JsonResponse: Codable {
@@ -236,7 +237,58 @@ class ComputeCoderTests: XCTestCase {
 		XCTAssertEqual(results.fileName, "foobar.pdf")
 	}
 	
+//	func testVariableDelta() {
+//		let json = """
+//		{
+//		  "clientData": {},
+//		  "delta": true,
+//		  "msg": "variableupdate",
+//		  "variables": {
+//			"assigned": {
+//			  "x": {
+//				"class": "numeric vector",
+//				"length": 1,
+//				"name": "x",
+//				"primitive": true,
+//				"type": "d",
+//				"value": [
+//				  34.0
+//				]
+//			  }
+//			},
+//			"removed": []
+//		  }
+//		}
+//		"""
+//		let resp = try! coder.parseResponse(data: json.data(using: .utf8)!)
+//		guard case let ComputeCoder.Response.variables(results) = resp
+//			else { XCTFail("failed to parse delta variables"); return }
+//		XCTAssertEqual(results.delta, false)
+//		XCTAssertEqual(results.variables.count, 1)
+//		XCTAssertEqual(results.removed.count, 0)
+//	}
 	// TODO: add tests for variableValue and variables when those responses are properly handled
+	
+	func testNoVariablesInUpdate() {
+		let json = """
+		{"clientData":{},"delta":false,"msg":"variableupdate","variables":null}
+		"""
+		let resp = try! coder.parseResponse(data: json.data(using: .utf8)!)
+		guard case let ComputeCoder.Response.variables(varData) = resp
+			else { XCTFail("failed to parse variable update"); return }
+		XCTAssertNil(varData.variables)
+	}
+
+	func testVariableUpdate() {
+		let json = """
+		{"clientData":{},"delta":true,"msg":"variableupdate","variables":{"assigned":{"x":{"class":"numeric vector","length":1,"name":"x","primitive":true,"type":"d","value":[44.0]}},"removed":[]}}
+		"""
+		let resp = try! coder.parseResponse(data: json.data(using: .utf8)!)
+		guard case let ComputeCoder.Response.variables(varData) = resp
+			else { XCTFail("failed to parse variable update"); return }
+		XCTAssertNotNil(varData.variables)
+		XCTAssertEqual(varData.variables?.count, 1)
+	}
 	
 	// MARK: - helper methods
 	private func queryId(for transId: String) -> Int {

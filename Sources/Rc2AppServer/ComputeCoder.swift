@@ -154,8 +154,11 @@ class ComputeCoder {
 				let assigned = assignedData.flatMap({ try? Variable.makeFromLegacy(dict: $0.1) })
 				variableData = ListVariablesData(variables: assigned, removed: removed, delta: true)
 			} else {
-				guard let data = json["variables"] as? [String: [String: Any]] else { throw ComputeError.invalidFormat }
-				let vars = data.flatMap({ try? Variable.makeFromLegacy(dict: $0.1) })
+				var vars: [Variable]?
+				if !(json["variables"] is NSNull) {
+					guard let data = json["variables"] as? [String: [String: Any]] else { throw ComputeError.invalidFormat }
+					vars = data.flatMap({ try? Variable.makeFromLegacy(dict: $0.1) })
+				}
 				variableData = ListVariablesData(variables: vars, removed: [], delta: delta)
 			}
 			return Response.variables(variableData)
