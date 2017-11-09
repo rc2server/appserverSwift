@@ -151,7 +151,14 @@ class ComputeCoder {
 					let assignedData = data["assigned"] as? [String: [String: Any]],
 					let removed = data["removed"] as? [String]
 				else { throw ComputeError.invalidFormat }
-				let assigned = assignedData.flatMap({ try? Variable.makeFromLegacy(dict: $0.1) })
+				let assigned: [Variable] = assignedData.flatMap({ 
+					do {
+						return try Variable.makeFromLegacy(dict: $0.1)
+				 } catch {
+					 Log.info("failed to parse legacy variable \($0.1): \(error)")
+					 return nil
+				 } })
+				Log.info("got \(assigned.count) converted for \(data.count)")
 				variableData = ListVariablesData(variables: assigned, removed: removed, delta: true)
 			} else {
 				var vars: [Variable]?
