@@ -99,7 +99,14 @@ class SessionTests: XCTestCase {
 	}
 	
 	func testVariableUpdate() {
-//		let json = """
+		let json = """
+		{"clientData":{},"delta":false,"msg":"variableupdate","variables":{"x":{"class":"numeric vector","length":1,"name":"x","primitive":true,"type":"d","value":[34.0]}}}
+		"""
+		let response: SessionResponse = try! settings.decode(data: json.data(using: .utf8)!)
+		guard case .variables(let vdata) = response else { XCTFail("failed to parse variable response"); return }
+		XCTAssertFalse(vdata.delta)
+		
+		//		let json = """
 //		{"msg": "variableupdate", "delta": true, "variables": { "x1": { "name": "x1", "type": "f", "value": 1.23 } }
 //		"""
 		// TODO: implement
