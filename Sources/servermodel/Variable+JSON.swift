@@ -41,6 +41,9 @@ extension Variable {
 			case "function":
 				guard let fbody = dict["body"] as? String else { throw VariableError("function w/o body", dict) }
 				vtype = .function(fbody)
+			case "factor", "ordered factor":
+				guard let values = dict["value"] as? [Int] else { throw VariableError("factor missing values", dict) }
+				vtype = .factor(values: values, levelNames: dict["levels"] as? [String])
 			case "environment":
 				vtype = .environment // FIXME: need to parse key/value pairs sent as value
 			case "data.frame":
