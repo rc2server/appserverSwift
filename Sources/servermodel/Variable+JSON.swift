@@ -64,11 +64,14 @@ extension Variable {
 		guard let valueLen = dict["length"] as? Int,
 			let typeCode = dict["type"] as? String,
 			let numCols = dict["ncol"] as? Int,
-			let numRows = dict["nrow"] as? Int,
-			let dimnames = dict["dimnames"] as? [[String]]
+			let numRows = dict["nrow"] as? Int
 			else { throw VariableError("failed to parse required matrix fields", dict) }
-		let rowNames = dimnames[0]
-		let colNames = dimnames[1]
+		var rowNames = [String]()
+		var colNames = [String]()
+		if let dimnames = dict["dimnames"] as? [[String]] {
+			rowNames = dimnames[0]
+			colNames = dimnames[1]
+		}
 		guard colNames.count == numCols, rowNames.count == numRows
 			else { throw VariableError("dimnames do not match lengths", dict) }
 		guard let rawValues = dict["value"] as? [Any],
