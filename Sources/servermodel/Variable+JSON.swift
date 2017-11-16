@@ -44,6 +44,8 @@ extension Variable {
 			case "factor", "ordered factor":
 				guard let values = dict["value"] as? [Int] else { throw VariableError("factor missing values", dict) }
 				vtype = .factor(values: values, levelNames: dict["levels"] as? [String])
+			case "matrix":
+				vtype = .matrix(try parseMatrix(dict: dict))
 			case "environment":
 				vtype = .environment // FIXME: need to parse key/value pairs sent as value
 			case "data.frame":
@@ -56,6 +58,42 @@ extension Variable {
 			}
 		}
 		return Variable(name: vname, length: vlen, type: vtype, className: cname, summary: summary)
+	}
+	
+	static func parseMatrix(dict: [String: Any]) throws -> MatrixData {
+		guard let valueLen = dict["length"] as? Int,
+			let typeCode = dict["type"] as? String,
+			let numCols = dict["ncol"] as? Int,
+			let numRows = dict["nrow"] as? Int,
+			let dimnames = dict["dimnames"] as? [[String]]
+			else { throw VariableError("failed to parse required matrix fields", dict) }
+		let rowNames = dimnames[0]
+		let colNames = dimnames[1]
+		guard colNames.count == numCols, rowNames.count == numRows
+			else { throw VariableError("dimnames do not match lengths", dict) }
+		guard let rawValues = dict["value"] as? [Any],
+			rawValues.count == valueLen
+			else { throw VariableError("failed to parse values", dict) }
+		let values = try parseMatrixData(type: typeCode, rawData: rawValues, dict: dict)
+		return MatrixData(value: values, rowCount: numRows, colCount: numCols, colNames: colNames, rowNames: rowNames)
+	}
+	
+	static func parseMatrixData(type: String, rawData: [Any], dict: [String: Any]) throws -> PrimitiveValue {
+		switch type {
+		case "b":
+			if let vals = rawData as? [Bool] { return .boolean(vals) }
+		case "d":
+			return .double(try parseDoubles(input: rawData))
+		case "i":
+			if let vals = rawData as? [Int] { return .integer(vals) }
+		case "s":
+			if let vals = rawData as? [String] { return .string(vals) }
+		case "c":
+			if let vals = rawData as? [String] { return .complex(vals) }
+		default:
+			break
+		}
+		throw VariableError("unsupported data type for matrix values", dict)
 	}
 	
 	// parses array of doubles, "Inf", "-Inf", and "NaN" into [Double]
