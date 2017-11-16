@@ -66,14 +66,14 @@ extension Variable {
 			let numCols = dict["ncol"] as? Int,
 			let numRows = dict["nrow"] as? Int
 			else { throw VariableError("failed to parse required matrix fields", dict) }
-		var rowNames = [String]()
-		var colNames = [String]()
+		var rowNames: [String]?
+		var colNames: [String]?
 		if let dimnames = dict["dimnames"] as? [[String]] {
 			rowNames = dimnames[0]
 			colNames = dimnames[1]
+			guard colNames!.count == numCols, rowNames!.count == numRows
+				else { throw VariableError("dimnames do not match lengths", dict) }
 		}
-		guard colNames.count == numCols, rowNames.count == numRows
-			else { throw VariableError("dimnames do not match lengths", dict) }
 		guard let rawValues = dict["value"] as? [Any],
 			rawValues.count == valueLen
 			else { throw VariableError("failed to parse values", dict) }
