@@ -9,6 +9,7 @@ import Dispatch
 import LoggerAPI
 import Rc2Model
 import servermodel
+import Freddy
 
 /// object to transform data send/received from the compute engine
 class ComputeCoder {
@@ -111,87 +112,58 @@ class ComputeCoder {
 	// MARK: - response handling
 	
 	func parseResponse(data: Data) throws -> Response {
-		guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-			let msg = json["msg"] as? String
-		else {
-			throw ComputeError.invalidFormat
-		}
-		let queryId = json["queryId"] as? Int
-		let transId = queryIds[queryId ?? 0]
+		let json = try JSON(data: data)
+		let msg = try json.getString(at: "msg")
+		let queryId = try json.getInt(at: "queryId", or: 0)
+		let transId = queryIds[queryId]
 		switch msg {
 		case "openresponse":
-			guard let success = json["success"] as? Bool else { throw ComputeError.invalidFormat }
-			let errorDetails = json["errorMessage"] as? String
+			let success = try json.getBool(at: "success")
+			let errorDetails = try json.getString(at: "errorMessage", alongPath: .missingKeyBecomesNil)
 			if !success && errorDetails == nil { throw ComputeError.invalidFormat }
 			return Response.open(success: success, errorMessage: errorDetails)
 		case "execComplete":
-			guard let expect = json["expectShowOutput"] as? Bool, let transId = transId else { throw ComputeError.invalidFormat }
-			var fileId: Int?
-			if let clientData = json[clientDataKey] as? [String: Int], let parsedFileId = clientData["fileId"] {
-				fileId = parsedFileId
-			}
-			return Response.execComplete(ExecCompleteData(fileId: fileId, imageIds: json["images"] as? [Int], batchId: json["imgBatch"] as? Int, transactionId: transId, expectShowOutput: expect))
+			let expect = try json.getBool(at: "expectShowOutput")
+			guard let transId = transId else { throw ComputeError.invalidFormat }
+			let fileId = try json.getInt(at: clientDataKey, "fileId", alongPath: .missingKeyBecomesNil)
+			let imageIds: [Int] = try json.decodedArray(at: "images", or: [])
+			let batchId = try json.getInt(at: "imgBatch", alongPath: .missingKeyBecomesNil)
+			return Response.execComplete(ExecCompleteData(fileId: fileId, imageIds: imageIds, batchId: batchId, transactionId: transId, expectShowOutput: expect))
 		case "results":
-			// FIXME: does this send stderr or stdout or both? really shouldn't be a guard
-			guard let isNotErr = json["stdout"] as? Bool, let transId = transId, let text = json["string"] as? String
-			else { throw ComputeError.invalidFormat }
-			return Response.results(ResultsData(text: text, isStdErr: !isNotErr, transactionId: transId))
+			guard let transId = transId else { throw ComputeError.invalidFormat }
+			let isError = try json.getBool(at: "stderr", or: false)
+			let text = try json.getString(at: "string")
+			return Response.results(ResultsData(text: text, isStdErr: isError, transactionId: transId))
 		case "showoutput":
-			guard let fileId = json["fileId"] as? Int,
-				let fileVersion = json["fileVersion"] as? Int,
-				let fileName = json["fileName"] as? String,
-				let transId = transId
-			else { throw ComputeError.invalidFormat }
+			let fileId = try json.getInt(at: "fileId")
+			let fileVersion = try json.getInt(at: "fileVersion")
+			let fileName = try json.getString(at: "fileName")
+			guard let transId = transId else { throw ComputeError.invalidFormat }
 			return Response.showFile(ShowFileData(fileId: fileId, fileVersion: fileVersion, fileName: fileName, transactionId: transId))
 		case "variableupdate":
-			guard let delta = json["delta"] as? Bool else { throw ComputeError.invalidFormat }
-			let variableData: ListVariablesData
-			if delta {
-				guard let data = json["variables"] as? [String: Any],
-					let assignedData = data["assigned"] as? [String: [String: Any]],
-					let removed = data["removed"] as? [String]
-				else { throw ComputeError.invalidFormat }
-				let assigned: [Variable] = assignedData.flatMap({ 
-					do {
-						return try Variable.makeFromLegacy(dict: $0.1)
-				 } catch {
-					 Log.info("failed to parse legacy variable \($0.1): \(error)")
-					 return nil
-				 } })
-				Log.info("got \(assigned.count) converted for \(data.count)")
-				variableData = ListVariablesData(variables: assigned, removed: removed, delta: true)
-			} else {
-				var vars: [Variable]?
-				if !(json["variables"] is NSNull) {
-					guard let data = json["variables"] as? [String: [String: Any]] else { throw ComputeError.invalidFormat }
-					vars = data.flatMap({
-						do {
-							return try Variable.makeFromLegacy(dict: $0.1)
-						} catch {
-							Log.info("failed to parse legacy variable \($0.1): \(error)")
-							return nil
-						}
-					})
-				}
-				variableData = ListVariablesData(variables: vars, removed: [], delta: delta)
-			}
+			let variableData = try parseVariableUpdate(json: json)
 			return Response.variables(variableData)
 		case "variablevalue":
-			guard let value = try? Variable.makeFromLegacy(dict: json) else { throw ComputeError.invalidFormat }
-			var ident: Int? = nil
-			if let clientData = json[clientDataKey] as? [String: Int],
-				let cident = clientData[GetVariableCommand.clientIdentKey]
-			{
-				ident = cident
+			do {
+				let vjson = try JSON(data: data)
+				let value = try Variable.makeFromLegacy(json: vjson)
+				var ident: Int?
+				if let cident = try? vjson.getInt(at: clientDataKey, GetVariableCommand.clientIdentKey) {
+					ident = cident
+				}
+				return Response.variableValue(VariableData(variable: value, clientId: ident))
+			} catch {
+				Log.error("failed to parse variable value: \(error)")
+				throw ComputeError.invalidFormat
 			}
-			return Response.variableValue(VariableData(variable: value, clientId: ident))
 		case "help":
-			guard let topic = json["topic"] as? String, let paths = json["paths"] as? [String] else { throw ComputeError.invalidFormat }
+			let topic = try json.getString(at: "topic")
+			let paths: [String] = try json.decodedArray(at: "paths")
 			return Response.help(topic: topic, paths: paths)
 		case "error":
-			guard let code = json["errorCode"] as? Int else { throw ComputeError.invalidFormat }
+			let code = try json.getInt(at: "errorCode")
 			let ecode = SessionErrorCode(rawValue: code) ?? SessionErrorCode.unknown
-			let edata = ComputeErrorData(code: ecode, details: json["errorDetails"] as? String, transactionId: transId)
+			let edata = ComputeErrorData(code: ecode, details: try json.getString(at: "errorDetails"), transactionId: transId)
 			return Response.error(edata)
 		default:
 			Log.error("unknown response from compute engine: \(msg)")
@@ -268,6 +240,32 @@ class ComputeCoder {
 		return transactionIds[transId]
 	}
 
+	func parseVariableUpdate(json: JSON) throws -> ListVariablesData {
+		do {
+			let delta = try json.getBool(at: "delta")
+			var assignedData: [String: JSON]
+			var removed: [String] = []
+			if delta {
+				assignedData = try json.getDictionary(at: "variables", "assigned")
+				removed = try json.decodedArray(at: "variables", "removed", or: [])
+			} else {
+				assignedData = try json.getDictionary(at: "variables")
+			}
+			let assigned: [Variable] = assignedData.flatMap({
+				do {
+					return try Variable.makeFromLegacy(json: $0.1)
+				} catch {
+					Log.info("failed to parse legacy variable \($0.1): \(error)")
+					return nil
+				} })
+			Log.info("got \(assigned.count) converted for \(assignedData.count)")
+			return ListVariablesData(variables: assigned, removed: removed, delta: true)
+		} catch {
+			Log.warning("error parsing variable json: \(error)")
+			throw ComputeError.invalidFormat
+		}
+	}
+	
 	// MARK: - private structs for command serialization
 	struct OpenCommand: Codable {
 		let msg = "open"

@@ -8,6 +8,7 @@
 import XCTest
 import Rc2Model
 @testable import servermodel
+import Freddy
 
 class VariableJsonTests: XCTestCase {
 	override func setUp() {
@@ -18,12 +19,12 @@ class VariableJsonTests: XCTestCase {
 		super.tearDown()
 	}
 
-	func testFactor() {
+	func testFactor() throws {
 		let json = """
 		{"value": [1, 1, 3, 4, 2, 5], "summary": " Factor w/ 5 levels \\"a\\",\\"b\\",\\"c\\",\\"d\\",..: 1 1 3 4 2 5", "levels": ["a", "b", "c", "d", "e"], "type": "f", "name": "f", "class": "factor"}
 		"""
-		let parsedJson = try! JSONSerialization.jsonObject(with: json.data(using: .utf8)!, options: []) as! [String: Any]
-		let variable = try! Variable.makeFromLegacy(dict: parsedJson)
+		let parsedJson = try JSON(jsonString: json)
+		let variable = try! Variable.makeFromLegacy(json: parsedJson)
 		XCTAssertEqual(variable.name, "f")
 		XCTAssertTrue(variable.isFactor)
 		guard case .factor(let vals, let levels) =  variable.type else { XCTFail("failed to parse factor"); return }

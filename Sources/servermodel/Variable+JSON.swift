@@ -6,13 +6,15 @@
 
 import Foundation
 import Rc2Model
+import Freddy
+import LoggerAPI
 
 struct VariableError: Error {
 	let reason: String
-	let dictionary: [String: Any]?
-	init(_ reason: String, _ dict: [String: Any]?) {
+	let nestedError: Error?
+	init(_ reason: String, error: Error? = nil) {
 		self.reason = reason
-		self.dictionary = dict
+		self.nestedError = error
 	}
 }
 
@@ -20,100 +22,165 @@ extension Variable {
 	static let rDateFormatter: ISO8601DateFormatter = { var f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate, .withDashSeparatorInDate]; return f}()
 	
 	/// Parses a legacy compute json dictionary into a Variable
-	public static func makeFromLegacy(dict: [String: Any]) throws -> Variable {
-		guard let vname = dict["name"] as? String else { throw VariableError("unnamed variable", dict) }
-		guard let cname = dict["class"] as? String else { throw VariableError("no class name", dict) }
-		let summary = (dict["summary"] as? String) ?? ""
-		let vlen = (dict["length"] as? Int) ?? 1
-		var vtype: VariableType
-		if let primitive = dict["primitive"] as? Bool, primitive {
-			vtype = .primitive(try makePrimitive(dict: dict))
-		} else if let isS4 = dict["s4"] as? Bool, isS4 {
-			vtype = .s4Object
-		} else {
-			switch cname {
-			case "Date":
-				guard let dstr = dict["value"] as? String, let dval = rDateFormatter.date(from: dstr) else { throw VariableError("invalid date value", dict)}
-				vtype = .date(dval)
-			case "POSIXct", "POSIXlt":
-				guard let tval = dict["value"] as? Double else { throw VariableError("invalid date value", dict)}
-				vtype = .dateTime(Date(timeIntervalSince1970: tval))
-			case "function":
-				guard let fbody = dict["body"] as? String else { throw VariableError("function w/o body", dict) }
-				vtype = .function(fbody)
-			case "factor", "ordered factor":
-				guard let values = dict["value"] as? [Int] else { throw VariableError("factor missing values", dict) }
-				vtype = .factor(values: values, levelNames: dict["levels"] as? [String])
-			case "matrix":
-				vtype = .matrix(try parseMatrix(dict: dict))
-			case "environment":
-				vtype = .environment // FIXME: need to parse key/value pairs sent as value
-			case "data.frame":
-				vtype = .dataFrame // FIXME: need to implement
-			case "list":
-				vtype = .list([]) // FIXME: need to parse
-			default:
-				// our should we just set type to .unknown?
-				throw VariableError("unknown parsing error", dict)
+	public static func makeFromLegacy(json: JSON) throws -> Variable {
+		do {
+			let vname = try json.getString(at: "name")
+			let className = try json.getString(at: "class")
+			let summary = try json.getString(at: "summary", or: "")
+			let vlen = try json.getInt(at: "length", or: 1)
+			var vtype: VariableType
+			if try json.getBool(at: "primitive", or: false) {
+				vtype = .primitive(try makePrimitive(json: json))
+			} else if try json.getBool(at: "s4", or: false) {
+				vtype = .s4Object
+			} else {
+				switch className {
+				case "Date":
+					do {
+						guard let vdate = rDateFormatter.date(from: try json.getString(at: "value"))
+							else { throw VariableError("invalid date value") }
+						vtype = .date(vdate)
+					} catch {
+						throw VariableError("invalid date value", error: error)
+					}
+				case "POSIXct", "POSIXlt":
+					do {
+						vtype = .dateTime(Date(timeIntervalSince1970: try json.getDouble(at: "value")))
+					} catch {
+						throw VariableError("invalid date value", error: error)
+					}
+				case "function":
+					do {
+						vtype = .function(try json.getString(at: "body"))
+					} catch {
+						throw VariableError("function w/o body", error: error)
+					}
+				case "factor", "ordered factor":
+					do {
+						vtype = .factor(values: try json.decodedArray(at: "value"), levelNames: try json.decodedArray(at: "levels", or: []))
+					} catch {
+						throw VariableError("factor missing values", error: error)
+					}
+				case "matrix":
+					vtype = .matrix(try parseMatrix(json: json))
+				case "environment":
+					vtype = .environment // FIXME: need to parse key/value pairs sent as value
+				case "data.frame":
+					vtype = .dataFrame(try parseDataFrame(json: json))// FIXME: need to implement
+				case "list":
+					vtype = .list([]) // FIXME: need to parse
+				default:
+					// our should we just set type to .unknown?
+					throw VariableError("unknown parsing error")
+				}
 			}
+			return Variable(name: vname, length: vlen, type: vtype, className: className, summary: summary)
+		} catch let verror as VariableError {
+			throw verror
+		} catch {
+			Log.warning("error parsing legacy variable: \(error)")
+			throw VariableError("error parsing legacy variable", error: error)
 		}
-		return Variable(name: vname, length: vlen, type: vtype, className: cname, summary: summary)
 	}
 	
-	static func parseMatrix(dict: [String: Any]) throws -> MatrixData {
-		guard let valueLen = dict["length"] as? Int,
-			let typeCode = dict["type"] as? String,
-			let numCols = dict["ncol"] as? Int,
-			let numRows = dict["nrow"] as? Int
-			else { throw VariableError("failed to parse required matrix fields", dict) }
-		var rowNames: [String]?
-		var colNames: [String]?
-		if let dimnames = dict["dimnames"] as? [[String]] {
-			rowNames = dimnames[0]
-			colNames = dimnames[1]
-			guard colNames!.count == numCols, rowNames!.count == numRows
-				else { throw VariableError("dimnames do not match lengths", dict) }
-		}
-		guard let rawValues = dict["value"] as? [Any],
-			rawValues.count == valueLen
-			else { throw VariableError("failed to parse values", dict) }
-		let values = try parseMatrixData(type: typeCode, rawData: rawValues, dict: dict)
-		return MatrixData(value: values, rowCount: numRows, colCount: numCols, colNames: colNames, rowNames: rowNames)
+	static func parseDataFrame(json: JSON) throws -> DataFrameData {
+		return DataFrameData(value: [], colCount: 1, rowCount: 1, colNames: ["foo"], rowNames: nil)
 	}
 	
-	static func parseMatrixData(type: String, rawData: [Any], dict: [String: Any]) throws -> PrimitiveValue {
+	static func parseMatrix(json: JSON) throws -> MatrixData {
+		do {
+			let typeCode = try json.getString(at: "type")
+			let numCols = try json.getInt(at: "ncol")
+			let numRows = try json.getInt(at: "nrow")
+			let rowNames: [String]? = try? json.decodedArray(at: "dimnames", 0)
+			let colNames: [String]? = try? json.decodedArray(at: "dimnames", 1)
+			guard rowNames == nil || rowNames!.count == numRows
+				else { throw VariableError("row names do not match length") }
+			guard colNames == nil || colNames!.count == numCols
+				else { throw VariableError("col names do not match length") }
+			let values = try parseMatrixData(type: typeCode, json: json)
+			return MatrixData(value: values, rowCount: numRows, colCount: numCols, colNames: colNames, rowNames: rowNames)
+		} catch let verror as VariableError {
+			throw verror
+		} catch {
+			throw VariableError("error parsing matrix data", error: error)
+		}
+	}
+	
+	static func parseMatrixData(type: String, json: JSON) throws -> PrimitiveValue {
 		switch type {
 		case "b":
-			if let vals = rawData as? [Bool] { return .boolean(vals) }
+			return .boolean(try json.decodedArray(at: "value"))
 		case "d":
-			return .double(try parseDoubles(input: rawData))
+			return .double(try parseDoubles(json: json.getArray(at: "value")))
 		case "i":
-			if let vals = rawData as? [Int] { return .integer(vals) }
+			return .integer(try json.decodedArray(at: "value"))
 		case "s":
-			if let vals = rawData as? [String] { return .string(vals) }
+			return .string(try json.decodedArray(at: "value"))
 		case "c":
-			if let vals = rawData as? [String] { return .complex(vals) }
+			return .complex(try json.decodedArray(at: "value"))
 		default:
 			break
 		}
-		throw VariableError("unsupported data type for matrix values", dict)
+		throw VariableError("unsupported data type for matrix values")
 	}
 	
 	// parses array of doubles, "Inf", "-Inf", and "NaN" into [Double]
-	static func parseDoubles(input: [Any]) throws -> [Double] {
-		return try input.map { (aVal) in
-			if let dval = aVal as? Double { return dval }
-			guard let sval = aVal as? String else { throw VariableError("invalid double value in \(input)", nil) }
-			switch sval {
-			case "Inf": return Double.infinity
-			case "-Inf": return -Double.infinity
-			case "NaN": return Double.nan
-			default: throw VariableError("invalid string as double value \(aVal)", nil)
+	static func parseDoubles(json: [JSON]) throws -> [Double] {
+		return try json.map { (aVal) in
+			switch aVal {
+			case .double(let dval):
+				return dval
+			case .int(let ival):
+				return Double(ival)
+			case .string(let sval):
+				switch sval {
+				case "Inf": return Double.infinity
+				case "-Inf": return -Double.infinity
+				case "NaN": return Double.nan
+				default: throw VariableError("invalid string as double value \(aVal)")
+				}
+			default:
+				throw VariableError("invalid value type in double array")
 			}
 		}
 	}
 	
 	// returns a PrimitiveValue based on the contents of dict
+	static func makePrimitive(json: JSON) throws -> PrimitiveValue {
+		guard let ptype = try? json.getString(at: "type")
+			else { throw VariableError("invalid primitive type") }
+		var pvalue: PrimitiveValue
+		switch ptype {
+		case "n":
+			pvalue = .null
+		case "b":
+			guard let bval: [Bool] = try? json.decodedArray(at: "value")
+				else { throw VariableError("bool primitive with invalid value") }
+			pvalue = .boolean(bval)
+		case "i":
+			guard let ival: [Int] = try? json.decodedArray(at: "value")
+				else { throw VariableError("int primitive with invalid value") }
+			pvalue = .integer(ival)
+		case "d":
+			pvalue = .double(try parseDoubles(json: json.getArray(at: "value")))
+		case "s": // FIXME: does this properly decode arrays of optional values?
+			guard let sval: [String?] = try? json.decodedArray(at: "value")
+				else { throw VariableError("string primitive with invalid value") }
+			pvalue = .string(sval)
+		case "c":
+			guard let cval: [String?] = try? json.decodedArray(at: "value")
+				else { throw VariableError("complex primitive with invalid value") }
+			pvalue = .complex(cval)
+		case "r":
+			pvalue = .raw
+		default:
+			throw VariableError("unknown primitive type: \(ptype)")
+		}
+		return  pvalue
+	}
+
+/*	// returns a PrimitiveValue based on the contents of dict
 	static func makePrimitive(dict: [String: Any]) throws -> PrimitiveValue {
 		guard let ptype = dict["type"] as? String
 			else { throw VariableError("invalid primitive type", dict) }
@@ -135,7 +202,7 @@ extension Variable {
 			} else {
 				throw VariableError("double primitive with invalid value", dict)
 			}
-		case "s":
+		case "s": // FIXME: can be nullptrs
 			guard let sval = dict["value"] as? [String] else { throw VariableError("string primitive with invalid value", dict) }
 			pvalue = .string(sval)
 		case "c":
@@ -147,6 +214,6 @@ extension Variable {
 			throw VariableError("unknown primitive type: \(ptype)", dict)
 		}
 		return  pvalue
-	}
+	} */
 }
 

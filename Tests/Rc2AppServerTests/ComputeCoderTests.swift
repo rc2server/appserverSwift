@@ -27,6 +27,8 @@ class ComputeCoderTests: XCTestCase {
 		("testToggleWatch", testToggleWatch),
 		("testListVariables", testListVariables),
 		("testNoVariablesInUpdate", testNoVariablesInUpdate),
+		("testVariableDelta", testVariableDelta),
+		("testVariableUpdate", testVariableUpdate),
 		]
 
 	struct JsonResponse: Codable {
@@ -273,13 +275,30 @@ class ComputeCoderTests: XCTestCase {
 		let json = """
 		{"clientData":{},"delta":false,"msg":"variableupdate","variables":null}
 		"""
-		let resp = try! coder.parseResponse(data: json.data(using: .utf8)!)
-		guard case let ComputeCoder.Response.variables(varData) = resp
-			else { XCTFail("failed to parse variable update"); return }
-		XCTAssertNil(varData.variables)
+		do {
+			let resp = try coder.parseResponse(data: json.data(using: .utf8)!)
+			guard case let ComputeCoder.Response.variables(varData) = resp
+				else { XCTFail("failed to parse variable update"); return }
+			XCTAssertEqual(varData.variables?.count, 0)
+		} catch {
+			XCTFail("error parsing variable update response: \(error)")
+		}
 	}
 
 	func testVariableUpdate() {
+		let json = """
+		{"clientData":{},"delta":false,"msg":"variableupdate","variables":{"headless":{"class":"matrix","length":8,"name":"headless","ncol":2,"nrow":4,"primitive":false,"type":"i","value":[1,2,3,4,5,6,7,8]},"sampleMatrix":{"class":"matrix","dimnames":[["x","y","z","a"],["foo","bar"]],"length":8,"name":"sampleMatrix","ncol":2,"nrow":4,"primitive":false,"type":"i","value":[1,2,3,4,5,6,7,8]}}}
+		"""
+		let resp = try! coder.parseResponse(data: json.data(using: .utf8)!)
+		guard case let ComputeCoder.Response.variables(varData) = resp
+			else { XCTFail("failed to parse variable update"); return }
+		XCTAssertNotNil(varData.variables)
+		XCTAssertEqual(varData.variables?.count, 2)
+		XCTAssertEqual(varData.variables![0].name, "headless")
+		XCTAssertEqual(varData.variables![1].name, "sampleMatrix")
+	}
+	
+	func testVariableDelta() {
 		let json = """
 		{"clientData":{},"delta":true,"msg":"variableupdate","variables":{"assigned":{"x":{"class":"numeric vector","length":1,"name":"x","primitive":true,"type":"d","value":[44.0]}},"removed":[]}}
 		"""
@@ -288,6 +307,8 @@ class ComputeCoderTests: XCTestCase {
 			else { XCTFail("failed to parse variable update"); return }
 		XCTAssertNotNil(varData.variables)
 		XCTAssertEqual(varData.variables?.count, 1)
+		let theVar = varData.variables!.first!
+		XCTAssertEqual(theVar.name, "x")
 	}
 	
 	// MARK: - helper methods

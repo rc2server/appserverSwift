@@ -14,6 +14,7 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
+		.package(url: "https://github.com/bignerdranch/Freddy.git", from: "3.0.2"),
 		.package(url: "https://github.com/IBM-Swift/HeliumLogger.git", from: "1.7.1"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-HTTPServer.git", from: "2.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-WebSockets.git", from: "2.0.0"),
@@ -22,7 +23,8 @@ let package = Package(
 		.package(url: "https://github.com/PerfectlySoft/Perfect-Net.git", from: "2.1.7"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-Zip.git", from: "2.0.0"),
 		.package(url: "https://github.com/mlilback/postgresql.git", .revision("dae1219")),
-		.package(url: "https://github.com/vapor/node.git", from: "2.0.0"),
+		.package(url: "https://github.com/vapor/bits.git", .upToNextMajor(from: "1.1.0")),
+		.package(url: "https://github.com/vapor/node.git", from: "2.1.1"),
 		.package(url: "https://github.com/rc2server/appModelSwift.git", from: "0.1.1"),
 		.package(url: "https://github.com/IBM-Swift/BlueSignals.git", from: "0.9.48"),
 		.package(url: "https://github.com/rc2server/CommandLine.git", .revision("f15b41a")),
@@ -35,10 +37,10 @@ let package = Package(
             dependencies: ["Rc2AppServer"]),
         .target(
             name: "Rc2AppServer",
-            dependencies: ["PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "PerfectZip", "servermodel", "CommandLine", "Rc2Model", "Signals", "HeliumLogger"]),
+            dependencies: ["Freddy", "PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "PerfectZip", "servermodel", "CommandLine", "Rc2Model", "Signals", "HeliumLogger"]),
         .target(
         	name: "servermodel",
-        	dependencies: ["Node", "PostgreSQL", "Rc2Model"]),
+        	dependencies: ["Freddy", "Node", "PostgreSQL", "Rc2Model"]),
         .testTarget(
             name: "Rc2AppServerTests",
             dependencies: ["Rc2AppServer"]),
