@@ -211,11 +211,11 @@ class ComputeCoder {
 	}
 	
 	struct ListVariablesData: CustomStringConvertible {
-		let variables: [Variable]?
+		let variables: [String: Variable]
 		let removed: [String]
 		let delta: Bool
 		
-		var description: String { return "delta=\(delta), removed=\(removed), vars = \(variables ?? [])" }
+		var description: String { return "delta=\(delta), removed=\(removed), vars = \(variables.keys)" }
 	}
 	
 	struct VariableData {
@@ -249,7 +249,7 @@ class ComputeCoder {
 				assignedData = try json.getDictionary(at: "variables", "assigned")
 				removed = try json.decodedArray(at: "variables", "removed", or: [])
 			} else {
-				assignedData = try json.getDictionary(at: "variables")
+				assignedData = try json.getDictionary(at: "variables", alongPath: .nullBecomesNil) ?? [:]
 			}
 			let assigned: [Variable] = assignedData.flatMap({
 				do {
@@ -259,7 +259,9 @@ class ComputeCoder {
 					return nil
 				} })
 			Log.info("got \(assigned.count) converted for \(assignedData.count)")
-			return ListVariablesData(variables: assigned, removed: removed, delta: true)
+			let keys = assigned.map { $0.name }
+			let assignedDict = Dictionary(uniqueKeysWithValues: zip(keys, assigned))
+			return ListVariablesData(variables: assignedDict, removed: removed, delta: delta)
 		} catch {
 			Log.warning("error parsing variable json: \(error)")
 			throw ComputeError.invalidFormat

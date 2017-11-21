@@ -279,7 +279,7 @@ class ComputeCoderTests: XCTestCase {
 			let resp = try coder.parseResponse(data: json.data(using: .utf8)!)
 			guard case let ComputeCoder.Response.variables(varData) = resp
 				else { XCTFail("failed to parse variable update"); return }
-			XCTAssertEqual(varData.variables?.count, 0)
+			XCTAssertEqual(varData.variables.count, 0)
 		} catch {
 			XCTFail("error parsing variable update response: \(error)")
 		}
@@ -293,9 +293,9 @@ class ComputeCoderTests: XCTestCase {
 		guard case let ComputeCoder.Response.variables(varData) = resp
 			else { XCTFail("failed to parse variable update"); return }
 		XCTAssertNotNil(varData.variables)
-		XCTAssertEqual(varData.variables?.count, 2)
-		XCTAssertEqual(varData.variables![0].name, "headless")
-		XCTAssertEqual(varData.variables![1].name, "sampleMatrix")
+		XCTAssertEqual(varData.variables.count, 2)
+		XCTAssertNil(varData.variables["headless"]!.matrixData!.rowNames)
+		XCTAssertEqual(varData.variables["sampleMatrix"]?.name, "sampleMatrix")
 	}
 	
 	func testVariableDelta() {
@@ -306,9 +306,9 @@ class ComputeCoderTests: XCTestCase {
 		guard case let ComputeCoder.Response.variables(varData) = resp
 			else { XCTFail("failed to parse variable update"); return }
 		XCTAssertNotNil(varData.variables)
-		XCTAssertEqual(varData.variables?.count, 1)
-		let theVar = varData.variables!.first!
-		XCTAssertEqual(theVar.name, "x")
+		XCTAssertEqual(varData.variables.count, 1)
+		let theVar = varData.variables["x"]
+		XCTAssertEqual(theVar?.name, "x")
 	}
 	
 	// MARK: - helper methods

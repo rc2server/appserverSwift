@@ -103,12 +103,12 @@ class SessionTests: XCTestCase {
 		{"clientData":{},"delta":false,"msg":"variableupdate","variables":{"x":{"class":"numeric vector","length":1,"name":"x","primitive":true,"type":"d","value":[34.0]}}}
 		"""
 		session.handleCompute(data: json.data(using: .utf8)!)
-		guard let responseData = try! sessionSocket.messages.last, let response: SessionResponse = try! settings.decode(data: responseData) else { XCTFail("failed to parse variable update response"); return }
+		guard let responseData = sessionSocket.messages.last, let response: SessionResponse = try! settings.decode(data: responseData) else { XCTFail("failed to parse variable update response"); return }
 		guard case let SessionResponse.variables(listData) = response else { XCTFail("invalid variables response"); return }
 		XCTAssertFalse(listData.delta)
 		XCTAssertEqual(listData.variables.count, 1)
-		XCTAssertEqual(listData.variables[0].name, "x")
-		XCTAssertTrue(listData.variables[0].isPrimitive)
+		XCTAssertNotNil(listData.variables["x"])
+		XCTAssertTrue(listData.variables["x"]!.isPrimitive)
 		
 		//		let json = """
 //		{"msg": "variableupdate", "delta": true, "variables": { "x1": { "name": "x1", "type": "f", "value": 1.23 } }
