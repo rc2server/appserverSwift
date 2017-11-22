@@ -11,6 +11,10 @@ import Rc2Model
 import Freddy
 
 class VariableJsonTests: XCTestCase {
+	static var allTests = [
+		("testFactor", testFactor),
+	]
+
 	override func setUp() {
 		super.setUp()
 	}

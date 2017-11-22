@@ -1,7 +1,8 @@
 import XCTest
-@testable import appserverlibTests
+@testable import servermodelTests
+@testable import Rc2AppServerTests
 
 XCTMain([
-    testCase(appserverlibTests.allTests),
-    testCase(ComputeCoderTests.alltests)
+    testCase(FileChangeMonitorTests.allTests),
+    testCase(VariableJsonTests.allTests)
 ])

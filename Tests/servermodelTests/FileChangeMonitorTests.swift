@@ -3,6 +3,7 @@ import XCTest
 import Rc2Model
 #if os(Linux)
 	import Glibc
+	import Dispatch
 #else
 import Darwin
 #endif
@@ -39,7 +40,11 @@ fileprivate class ChangeMockDB: MockDBConnection {
 	// returns a source on /dev/random.
 	override func makeListenDispatchSource(toChannel channel: String, queue: DispatchQueue, callback: @escaping (DBNotification?, Error?) -> Void) throws -> DispatchSourceRead
 	{
-		let fd = Darwin.open("/dev/random", O_RDONLY)
+		#if os(OSX)
+			let fd = Darwin.open("/dev/random", O_RDONLY)
+		#else
+			let fd = Glibc.open("/dev/random", O_RDONLY)
+		#endif
 		guard fd >= 2 else { fatalError() }
 		let src = DispatchSource.makeReadSource(fileDescriptor: fd, queue: DispatchQueue.global())
 		src.setCancelHandler {
