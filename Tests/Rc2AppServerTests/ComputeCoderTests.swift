@@ -29,6 +29,7 @@ class ComputeCoderTests: XCTestCase {
 		("testNoVariablesInUpdate", testNoVariablesInUpdate),
 		("testVariableDelta", testVariableDelta),
 		("testVariableUpdate", testVariableUpdate),
+		("testDataFrameParser", testDataFrameParser),
 		]
 
 	struct JsonResponse: Codable {
@@ -309,6 +310,23 @@ class ComputeCoderTests: XCTestCase {
 		XCTAssertEqual(varData.variables.count, 1)
 		let theVar = varData.variables["x"]
 		XCTAssertEqual(theVar?.name, "x")
+	}
+	
+	func testDataFrameParser() {
+		let json = """
+{"clientData":{},"delta":false,"msg":"variableupdate","variables":{"cdf":
+{"class":"data.frame","columns":[{"name":"c1","type":"b","values":[false,true,null,null,true,false]},{"name":"c2","type":"d","values":[3.14,null,"NaN",21.0,"Inf","-Inf"]},{"name":"c3","type":"s","values":["Aladdin",null,"NA","Mario","Mark","Alex"]},{"name":"c4","type":"i","values":[1,2,3,null,5,null]}],"name":"cdf","ncol":4,"nrow":6,"row.names":["1","2","3","4","5","6"],"summary":"JSONSerialization barfs on a real R summary text with control characters"}
+}}
+"""
+		let jsonData = json.data(using: .utf8)!
+		let resp = try! coder.parseResponse(data: jsonData)
+		guard case let ComputeCoder.Response.variables(varData) = resp
+			else { XCTFail("failed to parse df variable update"); return }
+		XCTAssertNotNil(varData.variables)
+		XCTAssertEqual(varData.variables.count, 1)
+		guard let dvar = varData.variables["cdf"] else { XCTFail("failed to get df variable"); return }
+		guard case let .dataFrame(dfd) = dvar.type else { XCTFail("failed to extract dataframedata"); return }
+		XCTAssertEqual(dfd.columns.count, 4)
 	}
 	
 	// MARK: - helper methods
