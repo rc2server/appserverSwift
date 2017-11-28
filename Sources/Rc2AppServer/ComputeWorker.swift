@@ -106,7 +106,7 @@ public class ComputeWorker {
 	private func verifyMagicHeader(bytes: [UInt8]) throws -> Int {
 		let (header, dataLen) = UnsafePointer<UInt8>(bytes).withMemoryRebound(to: UInt32.self, capacity: 2) { return (UInt32(bigEndian: $0.pointee), UInt32(bigEndian: $0.advanced(by: 1).pointee))}
 		// tried all kinds of withUnsafePointer & withMemoryRebound and could not figure it out.
-		Log.info("compute sent \(dataLen) worth of json")
+		Log.debug("compute sent \(dataLen) worth of json")
 		guard header == 0x21 else { throw ComputeError.invalidHeader }
 		return Int(dataLen)
 	}
