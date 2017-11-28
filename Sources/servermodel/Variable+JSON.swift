@@ -70,8 +70,16 @@ extension Variable {
 				case "list":
 					vtype = .list([]) // FIXME: need to parse
 				default:
-					// our should we just set type to .unknown?
-					throw VariableError("unknown parsing error")
+					//make sure it is an object we can handle
+					guard try json.getBool(at: "generic", or: false) else { throw VariableError("unknown parsing error \(className)") }
+					var attrs = [String: Variable]()
+					let rawValues = try json.getDictionary(at: "value")
+					for aName in try json.decodedArray(at: "names", type: String.self) {
+						if let attrJson = rawValues[aName], let value = try? makeFromLegacy(json: attrJson) {
+							attrs[aName] = value
+						}
+					}
+					vtype = .generic(attrs)
 				}
 			}
 			return Variable(name: vname, length: vlen, type: vtype, className: className, summary: summary)
