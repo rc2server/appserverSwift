@@ -7,7 +7,7 @@
 import Foundation
 import Dispatch
 import PerfectWebSockets
-import LoggerAPI
+import MJLLogger
 import servermodel
 import Rc2Model
 
@@ -77,7 +77,7 @@ class SessionSocket: Hashable {
 			let command: SessionCommand = try settings.decode(data: data)
 			delegate.handle(command: command, socket: self)
 		} catch {
-			Log.warning("Got error decoding message from client")
+			Log.warn("Got error decoding message from client")
 		}
 	}
 	

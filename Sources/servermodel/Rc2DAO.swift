@@ -9,7 +9,7 @@ import Dispatch
 import PostgreSQL
 import Node
 import Rc2Model
-import LoggerAPI
+import MJLLogger
 
 open class Rc2DAO {
 	public enum DBError: Error {
@@ -112,7 +112,7 @@ open class Rc2DAO {
 		}
 		let result = try conn.execute(query, data)
 		guard let array = result.array, array.count == 1 else {
-			Log.verbose("failed to find user for login '\(login)' using password \(password.count)")
+			Log.info("failed to find user for login '\(login)' using password \(password.count)")
 			return nil
 		}
 		return try User(node: array[0])

@@ -9,6 +9,7 @@ import PerfectHTTP
 import PerfectLib
 import PerfectZip
 import Rc2Model
+import MJLLogger
 
 class ModelHandler: BaseHandler {
 	private enum Errors: Error {
@@ -73,7 +74,7 @@ class ModelHandler: BaseHandler {
 		try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true, attributes: nil)
 		let result = myZip.unzipFile(source: zipTmp.path, destination: tmpDir.path, overwrite: true)
 		guard result == .ZipSuccess else {
-			Log.warning(message: "error unzipping wspace files: \(result)", evenIdents: true)
+			Log.warn("error unzipping wspace files: \(result)")
 			throw Errors.unzipError
 		}
 		return tmpDir

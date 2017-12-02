@@ -8,7 +8,7 @@ import Foundation
 import Dispatch
 import PerfectNet
 import PerfectLib
-import LoggerAPI
+import MJLLogger
 import Rc2Model
 
 fileprivate let ConnectTimeout = 5

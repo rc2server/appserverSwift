@@ -8,7 +8,7 @@ import Foundation
 import Dispatch
 import PerfectWebSockets
 import PerfectHTTP
-import LoggerAPI
+import MJLLogger
 import Rc2Model
 
 public class SessionHandler: WebSocketSessionHandler {
@@ -43,7 +43,7 @@ public class SessionHandler: WebSocketSessionHandler {
 			let rawUser = try? settings.dao.getUser(id: wspace.userId),
 			let user = rawUser
 		else {
-			Log.warning("user doesn't have permission for requested workspace")
+			Log.warn("user doesn't have permission for requested workspace")
 			reportError(socket: socket, error: SessionError.permissionDenied)
 			return
 		}

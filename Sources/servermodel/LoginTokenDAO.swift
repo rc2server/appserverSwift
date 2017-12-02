@@ -8,7 +8,7 @@ import Foundation
 import PostgreSQL
 import Node
 import Rc2Model
-import LoggerAPI
+import MJLLogger
 
 /// Simple wrapper around contents stored in the authentication token
 public struct LoginToken {

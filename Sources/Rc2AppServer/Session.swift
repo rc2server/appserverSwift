@@ -6,7 +6,7 @@
 
 import Foundation
 import Dispatch
-import LoggerAPI
+import MJLLogger
 import Rc2Model
 import servermodel
 import PerfectNet
@@ -85,7 +85,7 @@ extension Session {
 				sockets.forEach { $0.send(data: data) { () in } }
 			}
 		} catch {
-			Log.warning("error sending to all client (\(error))")
+			Log.warn("error sending to all client (\(error))")
 		}
 	}
 	
@@ -98,7 +98,7 @@ extension Session {
 				}
 			}
 		} catch {
-			Log.warning("error sending to all client (\(error))")
+			Log.warn("error sending to all client (\(error))")
 		}
 	}
 }
@@ -139,7 +139,7 @@ extension Session {
 				try worker?.send(data: try coder.toggleVariableWatch(enable: false))
 				watchingVariables = false
 			} catch {
-				Log.warning("error disabling variable watch: \(error)")
+				Log.warn("error disabling variable watch: \(error)")
 			}
 		}
 	}
@@ -228,10 +228,10 @@ extension Session {
 				break
 			}
 		} catch let serror as SessionError {
-			Log.warning("file operation \(params.operation) on \(params.fileId) failed: \(serror)")
+			Log.warn("file operation \(params.operation) on \(params.fileId) failed: \(serror)")
 			cmdError = serror
 		} catch {
-			Log.warning("file operation \(params.operation) on \(params.fileId) failed: \(error)")
+			Log.warn("file operation \(params.operation) on \(params.fileId) failed: \(error)")
 			cmdError = SessionError.databaseUpdateFailed
 		}
 
@@ -245,7 +245,7 @@ extension Session {
 			let cmd = try coder.getVariable(name: name, clientIdentifier: socket.hashValue)
 			try worker?.send(data: cmd)
 		} catch {
-			Log.warning("error getting variable: \(error)")
+			Log.warn("error getting variable: \(error)")
 		}
 	}
 	
@@ -265,7 +265,7 @@ extension Session {
 			try worker?.send(data: cmd)
 			watchingVariables = shouldWatch
 		} catch {
-			Log.warning("error toggling variable watch: \(error)")
+			Log.warn("error toggling variable watch: \(error)")
 		}
 	}
 	
@@ -278,10 +278,10 @@ extension Session {
 		} catch let dberr as Rc2DAO.DBError {
 			serror = SessionError(dbError: dberr)
 			if serror == .unknown {
-				Log.warning("unknown error saving file: \(dberr)")
+				Log.warn("unknown error saving file: \(dberr)")
 			}
 		} catch {
-			Log.warning("unknown error saving file: \(error)")
+			Log.warn("unknown error saving file: \(error)")
 			serror = SessionError.unknown
 		}
 		let responseData = SessionResponse.SaveData(transactionId: params.transactionId, success: serror != nil, file: updatedFile, error: serror)
@@ -294,7 +294,7 @@ extension Session {
 			let response = SessionResponse.InfoData(workspace: workspace, files: try settings.dao.getFiles(workspace: workspace))
 			broadcastToAllClients(object: SessionResponse.info(response))
 		} catch {
-			Log.warning("error sending info: \(error)")
+			Log.warn("error sending info: \(error)")
 		}
 	}
 	
@@ -304,7 +304,7 @@ extension Session {
 			try data?.write(to: URL(fileURLWithPath: "/tmp/url-out.txt"))
 			try worker?.send(data: data!)
 		} catch {
-			Log.warning("error sending help message: \(error)")
+			Log.warn("error sending help message: \(error)")
 		}
 	}
 }
@@ -365,7 +365,7 @@ extension Session {
 		do {
 			images = try settings.dao.getImages(imageIds: data.imageIds)
 		} catch {
-			Log.warning("Error fetching images from compute \(error)")
+			Log.warn("Error fetching images from compute \(error)")
 		}
 		let cdata = SessionResponse.ExecCompleteData(transactionId: data.transactionId, batchId: data.batchId ?? 0, expectShowOutput: data.expectShowOutput, images: images)
 		broadcastToAllClients(object: SessionResponse.execComplete(cdata))
@@ -381,7 +381,7 @@ extension Session {
 			//refetch from database so we have updated information
 			//if file is too large, only send meta info
 			guard let file = try settings.dao.getFile(id: data.fileId, userId: workspace.userId) else {
-				Log.warning("failed to find file \(data.fileId) to show output")
+				Log.warn("failed to find file \(data.fileId) to show output")
 				handleErrorResponse(data: ComputeCoder.ComputeErrorData(code: .unknownFile, details: "unknown file requested", transactionId: data.transactionId))
 				return
 			}
@@ -392,7 +392,7 @@ extension Session {
 			let forClient = SessionResponse.ShowOutputData(transactionid: data.transactionId, file: file, fileData: fileData)
 			broadcastToAllClients(object: SessionResponse.showOutput(forClient))
 		} catch {
-			Log.warning("error handling show file: \(error)")
+			Log.warn("error handling show file: \(error)")
 		}
 	}
 	

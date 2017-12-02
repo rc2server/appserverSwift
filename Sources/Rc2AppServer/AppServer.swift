@@ -12,8 +12,7 @@ import PerfectHTTPServer
 import servermodel
 import CommandLineKit
 import PerfectWebSockets
-import LoggerAPI
-import HeliumLogger
+import MJLLogger
 
 public let jsonType = "application/json"
 // sysexits.h is not part of linux
@@ -149,7 +148,8 @@ open class AppServer {
 	private func initializeLogging(path: String) {
 		// setup logging
 		let stream = LogStream(path)
-		let logger = HeliumStreamLogger(.verbose, outputStream: stream)
-		Log.logger = logger
+		let config = DefaultLogConfiguration(level: .info)
+		let logger = TextStreamLogger(stream: stream, config: config)
+		Log.enableLogging(logger)
 	}
 }

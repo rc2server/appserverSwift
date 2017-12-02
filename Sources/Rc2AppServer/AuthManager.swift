@@ -8,7 +8,7 @@ import Foundation
 import servermodel
 import PerfectHTTP
 import PerfectCrypto
-import LoggerAPI
+import MJLLogger
 
 fileprivate let psecret = "32342fsa"
 
@@ -51,7 +51,7 @@ class AuthManager: BaseHandler {
 			let loginToken = try tokenDao.createToken(user: user)
 			guard let encoder = JWTCreator(payload: loginToken.contents) else {
 				//failed to encrypt password
-				Log.warning("failed to create jwt")
+				Log.warn("failed to create jwt")
 				response.completed(status: .internalServerError)
 				return
 			}
@@ -63,7 +63,7 @@ class AuthManager: BaseHandler {
 			response.completed()
 			return
 		} catch {
-			Log.warning("invalid login json \(error)")
+			Log.warn("invalid login json \(error)")
 			response.completed(status: .unauthorized)
 			return
 		}		

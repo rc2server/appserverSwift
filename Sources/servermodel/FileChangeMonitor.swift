@@ -8,7 +8,7 @@ import Foundation
 import Dispatch
 import PostgreSQL
 import Rc2Model
-import LoggerAPI
+import MJLLogger
 
 extension String {
 	func after(integerIndex: Int) -> Substring {
@@ -56,7 +56,7 @@ class FileChangeMonitor {
 	// internal to allow unit testing
 	internal func handleNotification(notification: DBNotification?, error: Error?) {
 		guard let msg = notification?.payload else {
-			Log.warning("FileChangeMonitor got error from database: \(error!)")
+			Log.warn("FileChangeMonitor got error from database: \(error!)")
 			return
 		}
 		let msgParts = msg.after(integerIndex: 1).split(separator: "/")
@@ -64,13 +64,13 @@ class FileChangeMonitor {
 			let wspaceId = Int(msgParts[1]),
 			let fileId = Int(msgParts[0])
 		else {
-			Log.warning("received unknown message \(msg) from db on rcfile channel")
+			Log.warn("received unknown message \(msg) from db on rcfile channel")
 			return
 		}
 		let msgType = String(msg[msg.startIndex...msg.startIndex]) // a lot of work to get first character as string
 		Log.info("received rcfile notification for file \(fileId) in wspace \(wspaceId)")
 		guard let changeType = SessionResponse.FileChangedData.FileChangeType(rawValue: msgType)
-			else { Log.warning("invalid change notifiction from db \(msg)"); return }
+			else { Log.warn("invalid change notifiction from db \(msg)"); return }
 		var file: Rc2Model.File?
 		if let results = try? dbConnection.execute(query: "select * from rcfile where id = \(fileId)", values: []),
 			let array = results.array,

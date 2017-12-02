@@ -83,6 +83,15 @@
         }
       },
       {
+        "package": "MJLLogger",
+        "repositoryURL": "https://github.com/mlilback/MJLLogger.git",
+        "state": {
+          "branch": "9c2fb9e",
+          "revision": "9c2fb9efdc0bef414fe5bb833bf2b5ef7bfb39e5",
+          "version": null
+        }
+      },
+      {
         "package": "Node",
         "repositoryURL": "https://github.com/vapor/node.git",
         "state": {
@@ -161,24 +170,6 @@
           "branch": null,
           "revision": "e0c59e720217d2638e78ae5df29ac8e38143db4e",
           "version": "2.0.3"
-        }
-      },
-      {
-        "package": "PostgreSQL",
-        "repositoryURL": "https://github.com/mlilback/postgresql.git",
-        "state": {
-          "branch": "dae1219",
-          "revision": "dae12196b76a86bae501d11b3941e5ee0f9dffd2",
-          "version": null
-        }
-      },
-      {
-        "package": "Rc2Model",
-        "repositoryURL": "https://github.com/rc2server/appModelSwift.git",
-        "state": {
-          "branch": null,
-          "revision": "770717878aed9bcaa325fbd02ce43f293eee56a5",
-          "version": "0.1.2"
         }
       },
       {

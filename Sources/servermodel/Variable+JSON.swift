@@ -7,7 +7,7 @@
 import Foundation
 import Rc2Model
 import Freddy
-import LoggerAPI
+import MJLLogger
 
 struct VariableError: Error {
 	let reason: String
@@ -86,7 +86,7 @@ extension Variable {
 		} catch let verror as VariableError {
 			throw verror
 		} catch {
-			Log.warning("error parsing legacy variable: \(error)")
+			Log.warn("error parsing legacy variable: \(error)")
 			throw VariableError("error parsing legacy variable", error: error)
 		}
 	}

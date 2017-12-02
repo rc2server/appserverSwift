@@ -6,7 +6,7 @@
 
 import Foundation
 import Dispatch
-import LoggerAPI
+import MJLLogger
 import Rc2Model
 import servermodel
 import Freddy
@@ -263,7 +263,7 @@ class ComputeCoder {
 			let assignedDict = Dictionary(uniqueKeysWithValues: zip(keys, assigned))
 			return ListVariablesData(variables: assignedDict, removed: removed, delta: delta)
 		} catch {
-			Log.warning("error parsing variable json: \(error)")
+			Log.warn("error parsing variable json: \(error)")
 			throw ComputeError.invalidFormat
 		}
 	}

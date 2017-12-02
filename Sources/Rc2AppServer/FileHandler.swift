@@ -6,7 +6,7 @@
 
 import Foundation
 import PerfectHTTP
-import LoggerAPI
+import MJLLogger
 import Rc2Model
 
 class FileHandler: BaseHandler {
@@ -39,7 +39,7 @@ class FileHandler: BaseHandler {
 			response.bodyBytes.append(contentsOf: Array<UInt8>(data))
 			response.completed(status: .created)
 		} catch {
-			Log.warning("failed to save file contents: \(error)")
+			Log.warn("failed to save file contents: \(error)")
 			handle(error: SessionError.databaseUpdateFailed, response: response)
 		}
 	}
@@ -60,7 +60,7 @@ class FileHandler: BaseHandler {
 			try settings.dao.setFile(bytes: data, fileId: fileId)
 			response.completed(status: .noContent)
 		} catch {
-			Log.warning("failed to save file contents: \(error)")
+			Log.warn("failed to save file contents: \(error)")
 			handle(error: SessionError.databaseUpdateFailed, response: response)
 		}
 	}
