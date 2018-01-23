@@ -46,7 +46,10 @@ class ModelHandler: BaseHandler {
 			var fileUrls: [URL]? // urls of the files in the zipUrl
 			if let uploadUrl = try unpackFiles(request: request) {
 				zipUrl = uploadUrl
-				fileUrls = try FileManager.default.contentsOfDirectory(at: uploadUrl, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants])
+				// used to use options [.skipsHiddenFiles, .skipsSubdirectoryDescendants]. but the first isn't implemented in linux 4.0.2, and the second is the default behavior
+				fileUrls = try FileManager.default.contentsOfDirectory(at: uploadUrl, includingPropertiesForKeys: nil)
+				// filter out hidden files
+				fileUrls = fileUrls!.filter { !$0.lastPathComponent.hasPrefix(".") }
 			}
 			defer { if let zipUrl = zipUrl { try? FileManager.default.removeItem(at: zipUrl) } }
 			let wspace = try settings.dao.createWorkspace(project: project, name: wspaceName, insertingFiles: fileUrls)
@@ -63,17 +66,19 @@ class ModelHandler: BaseHandler {
 
 	private func unpackFiles(request: HTTPRequest) throws -> URL? {
 		guard let bytes = request.postBodyBytes, bytes.count > 0 else { return nil }
+		let topTmpDir = URL(fileURLWithPath: "/tmp/", isDirectory: true)
 		let myZip = Zip()
 		let fm = FileManager()
 		// write incoming data to zip file that will be removed
-		let zipTmp = fm.temporaryDirectory.appendingPathComponent(UUID().string).appendingPathExtension("zip")
+		let zipTmp = topTmpDir.appendingPathComponent(UUID().string).appendingPathExtension("zip")
 		try Data(bytes: bytes).write(to: zipTmp)
 		defer { try? fm.removeItem(at: zipTmp)}
 		//create directory to expand zip into
-		let tmpDir = fm.temporaryDirectory.appendingPathComponent(UUID().string, isDirectory: true)
+		let tmpDir = topTmpDir.appendingPathComponent(UUID().string, isDirectory: true)
 		try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true, attributes: nil)
 		let result = myZip.unzipFile(source: zipTmp.path, destination: tmpDir.path, overwrite: true)
 		guard result == .ZipSuccess else {
+			try? fm.removeItem(at: tmpDir)
 			Log.warn("error unzipping wspace files: \(result)")
 			throw Errors.unzipError
 		}
