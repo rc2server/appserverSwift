@@ -3,6 +3,7 @@ import XCTest
 @testable import Rc2AppServerTests
 
 XCTMain([
+	testCase(ModelHandlerTests.allTests),
     testCase(FileChangeMonitorTests.allTests),
     testCase(VariableJsonTests.allTests)
 ])

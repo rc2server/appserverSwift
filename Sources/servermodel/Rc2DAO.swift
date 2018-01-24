@@ -215,6 +215,20 @@ open class Rc2DAO {
 		}
 	}
 	
+	/// Delete the workspace with the passed in id. This will also delete all files in the workspace.
+	///
+	/// - Parameter workspaceId: the id of the workspace to delete
+	/// - Throws: any database errors
+	public func delete(workspaceId: Int) throws {
+		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
+		try queue.sync { () throws -> Void in
+			let conn = try pgdb.makeConnection()
+			try conn.transaction { () -> Void in
+				_ = try conn.execute("delete from rcworkspace where id = \(workspaceId)")
+			}
+		}
+	}
+	
 	// MARK: - Files
 	/// insert an array of files from the local file system
 	///

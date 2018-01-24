@@ -19,7 +19,43 @@ class ModelHandler: BaseHandler {
 	func routes() -> [Route] {
 		var routes = [Route]()
 		routes.append(Route(method: .post, uri: "/proj/{projId}/wspace", handler: createWorkspace))
+		routes.append(Route(method: .delete, uri: "/proj/{projId}/wspace/{wspaceId}", handler: deleteWorkspace))
 		return routes
+	}
+	
+	/// handles a request to delete a workspace
+	/// returns updated BulkInfo
+	func deleteWorkspace(request: HTTPRequest, response: HTTPResponse) {
+		do {
+			print("starting big guard")
+			guard let userId = request.login?.userId,
+				let user = try settings.dao.getUser(id: userId),
+				let projectIdStr = request.urlVariables["projId"],
+				let projectId = Int(projectIdStr),
+				let wspaceIdStr = request.urlVariables["wspaceId"],
+				let wspaceId = Int(wspaceIdStr),
+				let project = try settings.dao.getProject(id: projectId),
+				let _ = try settings.dao.getWorkspace(id: wspaceId),
+				project.userId == userId
+			else {
+				print("guard failed")
+				handle(error: SessionError.invalidRequest, response: response)
+				return
+			}
+			print("trying delete")
+			try settings.dao.delete(workspaceId: wspaceId)
+
+			let bulkInfo = try settings.dao.getUserInfo(user: user)
+			response.bodyBytes.removeAll()
+			response.bodyBytes.append(contentsOf: try settings.encode(bulkInfo))
+			response.setHeader(.contentType, value: MimeType.forExtension("json"))
+			response.completed()
+
+			response.completed(status: .ok)
+		} catch {
+			print("delete failed: \(error)")
+			response.completed(status: .notFound)
+		}
 	}
 	
 	// return bulk info for logged in user
