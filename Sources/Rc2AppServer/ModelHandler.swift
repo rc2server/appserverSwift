@@ -27,7 +27,6 @@ class ModelHandler: BaseHandler {
 	/// returns updated BulkInfo
 	func deleteWorkspace(request: HTTPRequest, response: HTTPResponse) {
 		do {
-			print("starting big guard")
 			guard let userId = request.login?.userId,
 				let user = try settings.dao.getUser(id: userId),
 				let projectIdStr = request.urlVariables["projId"],
@@ -38,11 +37,14 @@ class ModelHandler: BaseHandler {
 				let _ = try settings.dao.getWorkspace(id: wspaceId),
 				project.userId == userId
 			else {
-				print("guard failed")
 				handle(error: SessionError.invalidRequest, response: response)
 				return
 			}
-			print("trying delete")
+			// can't delete last workspace
+			if try settings.dao.getWorkspaces(project: project).count < 2 {
+				handle(error: .permissionDenied, response: response)
+				return
+			}
 			try settings.dao.delete(workspaceId: wspaceId)
 
 			let bulkInfo = try settings.dao.getUserInfo(user: user)
