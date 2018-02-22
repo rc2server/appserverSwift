@@ -334,7 +334,7 @@ open class Rc2DAO {
 				let rawRow = try conn.execute("update rcfile set version = version + 1, lastmodified = now(), filesize = \(bytes.count) where id = \(fileId) returning *")
 				guard let array = rawRow.array, array.count == 1 else { throw DBError.noSuchRow }
 				let updatedFile = try File(node: array[0])
-				try conn.execute("update rcfiledata set bindata = $1", [Bind(bytes: bytes, configuration: conn.configuration)])
+				try conn.execute("update rcfiledata set bindata = $1 where id = \(fileId)", [Bind(bytes: bytes, configuration: conn.configuration)])
 				return updatedFile
 			}
 		}
