@@ -14,7 +14,7 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-		.package(url: "https://github.com/mlilback/MJLLogger.git", .revision("c38f8d6")),
+		.package(url: "https://github.com/mlilback/MJLLogger.git", .revision("c79a790")),
 		.package(url: "https://github.com/bignerdranch/Freddy.git", from: "3.0.2"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-HTTPServer.git", from: "3.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-WebSockets.git", from: "3.0.0"),
