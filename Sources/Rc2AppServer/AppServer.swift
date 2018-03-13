@@ -147,10 +147,9 @@ open class AppServer {
 	
 	private func initializeLogging(path: String) {
 		// setup logging
-//		let stream = LogStream(path)
 		let config = DefaultLogConfiguration(level: .info)
-		let logger = StdErrLogger(config: config)
-//		let logger = TextStreamLogger(stream: stream, config: config)
+		let logger = Logger(config: config)
+		logger.append(handler: StdErrHandler(config: config, formatter: nil))
 		Log.enableLogging(logger)
 	}
 }
