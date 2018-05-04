@@ -26,7 +26,7 @@ class LogStream: TextOutputStream {
 	
 	init(_ path: String) {
 		self.path = path
-		let fd = open(path, O_CREAT|O_APPEND|O_WRONLY,S_IWUSR | S_IRUSR)
+		let fd = open(path, O_CREAT|O_APPEND|O_WRONLY, S_IWUSR | S_IRUSR)
 		self.fh = FileHandle(fileDescriptor: fd)
 		let fcresult = fcntl(2, F_GETFD)
 		write("stderr is open: \(fcresult)\n")
@@ -63,7 +63,7 @@ open class AppServer {
 
 	/// creates a server with the authentication filter installed
 	public init() {
-}
+	}
 	
 	public func stop() {
 		server.stop()
