@@ -36,11 +36,14 @@ class ComputeCoder {
 	/// 
 	/// - Parameter name: The name of the variable to get
 	/// - Returns: data to send to compute server
-	func getVariable(name: String, clientIdentifier: Int? = nil) throws -> Data {
-		let obj = GetVariableCommand(name: name, clientIdentifier: clientIdentifier)
+	func getVariable(name: String, contextId: Int?, clientIdentifier: Int? = nil) throws -> Data {
+		let obj = GetVariableCommand(name: name, contextId: contextId, clientIdentifier: clientIdentifier)
 		return try encoder.encode(obj)
 	}
 
+	func clearEnvironment(id: Int) throws -> Data {
+		return try encoder.encode(ClearEnvironmentCommand(contextId: id))
+	}
 	/// Create the data to request help for a topic
 	/// 
 	/// - Parameter topic: The help topic to query
@@ -78,8 +81,8 @@ class ComputeCoder {
 	/// 
 	/// - Parameter enable: Should variables be watched
 	/// - Returns: data to send to compute server
-	func toggleVariableWatch(enable: Bool) throws -> Data {
-		return try encoder.encode(ToggleVariables(watch: enable))
+	func toggleVariableWatch(enable: Bool, contextId: Int?) throws -> Data {
+		return try encoder.encode(ToggleVariables(watch: enable, contextId: contextId))
 	}
 	
 	/// Create the data to close the connection gracefully
@@ -93,8 +96,8 @@ class ComputeCoder {
 	/// 
 	/// - Parameter deltaOnly: Should it return only changed values, or all values
 	/// - Returns: data to send to compute server
-	func listVariables(deltaOnly: Bool) throws -> Data {
-		return try encoder.encode(ListVariableCommand(delta: deltaOnly))
+	func listVariables(deltaOnly: Bool, contextId: Int?) throws -> Data {
+		return try encoder.encode(ListVariableCommand(delta: deltaOnly, contextId: contextId))
 	}
 	
 	/// Create the data to open a connection to the compute server
@@ -148,10 +151,11 @@ class ComputeCoder {
 				let vjson = try JSON(data: data)
 				let value = try Variable.makeFromLegacy(json: vjson)
 				var ident: Int?
+				let contextId: Int? = try vjson.getInt(at: "contextId", alongPath: [.missingKeyBecomesNil, .nullBecomesNil])
 				if let cident = try? vjson.getInt(at: clientDataKey, GetVariableCommand.clientIdentKey) {
 					ident = cident
 				}
-				return Response.variableValue(VariableData(variable: value, clientId: ident))
+				return Response.variableValue(VariableData(variable: value, contextId: contextId, clientId: ident))
 			} catch {
 				Log.error("failed to parse variable value: \(error)")
 				throw ComputeError.invalidFormat
@@ -213,6 +217,7 @@ class ComputeCoder {
 	struct ListVariablesData: CustomStringConvertible {
 		let variables: [String: Variable]
 		let removed: [String]
+		let contextId: Int?
 		let delta: Bool
 		
 		var description: String { return "delta=\(delta), removed=\(removed), vars = \(variables.keys)" }
@@ -220,6 +225,7 @@ class ComputeCoder {
 	
 	struct VariableData {
 		let variable: Variable
+		let contextId: Int?
 		let clientId: Int?
 	}
 	
@@ -243,6 +249,7 @@ class ComputeCoder {
 	func parseVariableUpdate(json: JSON) throws -> ListVariablesData {
 		do {
 			let delta = try json.getBool(at: "delta")
+			let contextId = try json.getInt(at: "contextId", alongPath: [.missingKeyBecomesNil, .nullBecomesNil])
 			var assignedData: [String: JSON]
 			var removed: [String] = []
 			if delta {
@@ -251,7 +258,7 @@ class ComputeCoder {
 			} else {
 				assignedData = try json.getDictionary(at: "variables", alongPath: .nullBecomesNil) ?? [:]
 			}
-			let assigned: [Variable] = assignedData.flatMap({
+			let assigned: [Variable] = assignedData.compactMap({
 				do {
 					return try Variable.makeFromLegacy(json: $0.1)
 				} catch {
@@ -261,7 +268,7 @@ class ComputeCoder {
 			Log.info("got \(assigned.count) converted for \(assignedData.count)")
 			let keys = assigned.map { $0.name }
 			let assignedDict = Dictionary(uniqueKeysWithValues: zip(keys, assigned))
-			return ListVariablesData(variables: assignedDict, removed: removed, delta: delta)
+			return ListVariablesData(variables: assignedDict, removed: removed, contextId: contextId, delta: delta)
 		} catch {
 			Log.warn("error parsing variable json: \(error)")
 			throw ComputeError.invalidFormat
@@ -284,14 +291,22 @@ class ComputeCoder {
 		let argument: String
 	}
 	
+	private struct ClearEnvironmentCommand: Encodable {
+		let msg = "clearEnvironment"
+		let argument = ""
+		let contextId: Int
+	}
+	
 	private struct GetVariableCommand: Encodable {
 		static let clientIdentKey = "clientIdent"
 		let msg = "getVariable"
 		let argument: String
 		let clientData: [String: Int]?
+		let contextId: Int?
 		
-		init(name: String, clientIdentifier: Int? = nil) {
+		init(name: String, contextId: Int?, clientIdentifier: Int? = nil) {
 			argument = name
+			self.contextId = contextId
 			if let cident = clientIdentifier {
 				clientData = [GetVariableCommand.clientIdentKey: cident]
 			} else {
@@ -303,10 +318,12 @@ class ComputeCoder {
 	private struct ListVariableCommand: Encodable {
 		let msg = "listVariables"
 		let argument = ""
+		let contextId: Int?
 		let delta: Bool
 		
-		init(delta: Bool) {
+		init(delta: Bool, contextId: Int?) {
 			self.delta = delta
+			self.contextId = contextId
 		}
 	}
 
@@ -314,9 +331,11 @@ class ComputeCoder {
 		let msg = "toggleVariableWatch"
 		let argument = ""
 		let watch: Bool
+		let contextId: Int?
 		
-		init(watch: Bool) {
+		init(watch: Bool, contextId: Int?) {
 			self.watch = watch
+			self.contextId = contextId
 		}
 	}
 

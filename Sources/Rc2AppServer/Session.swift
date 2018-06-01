@@ -136,7 +136,7 @@ extension Session {
 		// stop watching variables if currently watching and no sockets want to watch them
 		if watchingVariables && !sockets.map({ $0.watchingVariables }).contains(true) {
 			do {
-				try worker?.send(data: try coder.toggleVariableWatch(enable: false))
+				try worker?.send(data: try coder.toggleVariableWatch(enable: false, contextId: nil))
 				watchingVariables = false
 			} catch {
 				Log.warn("error disabling variable watch: \(error)")
@@ -162,6 +162,8 @@ extension Session: SessionSocketDelegate {
 	func handle(command: SessionCommand, socket: SessionSocket) {
 		Log.info("got command: \(command)")
 		switch command {
+		case .clearEnvironment(let envId):
+			handleClearEnvironment(id: envId)
 		case .help(let topic):
 			handleHelp(topic: topic, socket: socket)
 		case .info:
@@ -172,10 +174,10 @@ extension Session: SessionSocketDelegate {
 			handleExecuteFile(params: params)
 		case .fileOperation(let params):
 			handleFileOperation(params: params)
-		case .getVariable(let name):
-			handleGetVariable(name: name, socket: socket)
-		case .watchVariables(let enable):
-			handleWatchVariables(enable: enable, socket: socket)
+		case .getVariable(let params):
+			handleGetVariable(params: params, socket: socket)
+		case .watchVariables(let params):
+			handleWatchVariables(params: params, socket: socket)
 		case .save(let params):
 			handleSave(params: params, socket: socket)
 		}
@@ -186,7 +188,7 @@ extension Session: SessionSocketDelegate {
 extension Session {
 	private func handleExecute(params: SessionCommand.ExecuteParams) {
 		if params.isUserInitiated {
-			broadcastToAllClients(object: SessionResponse.echoExecute(SessionResponse.ExecuteData(transactionId: params.transactionId, source: params.source)))
+			broadcastToAllClients(object: SessionResponse.echoExecute(SessionResponse.ExecuteData(transactionId: params.transactionId, source: params.source, contextId: params.contextId)))
 		}
 		do {
 			let data = try coder.executeScript(transactionId: params.transactionId, script: params.source)
@@ -240,9 +242,17 @@ extension Session {
 		sendSessionInfo(socket: nil)
 	}
 	
-	private func handleGetVariable(name: String, socket: SessionSocket) {
+	private func handleClearEnvironment(id: Int) {
+		do {
+			let cmd = try coder
+		} catch {
+			Log.warn("error clearing environment \(error)")
+		}
+	}
+	
+	private func handleGetVariable(params: SessionCommand.VariableParams, socket: SessionSocket) {
 		do { 
-			let cmd = try coder.getVariable(name: name, clientIdentifier: socket.hashValue)
+			let cmd = try coder.getVariable(name: params.name, contextId: params.contextId, clientIdentifier: socket.hashValue)
 			try worker?.send(data: cmd)
 		} catch {
 			Log.warn("error getting variable: \(error)")
@@ -250,17 +260,17 @@ extension Session {
 	}
 	
 	// toggle variable watch on the compute server if it needs to be based on this request
-	private func handleWatchVariables(enable: Bool, socket: SessionSocket) {
-		guard enable != socket.watchingVariables else { return } // nothing to change
-		socket.watchingVariables = enable
+	private func handleWatchVariables(params: SessionCommand.WatchVariablesParams, socket: SessionSocket) {
+		guard params.watch != socket.watchingVariables else { return } // nothing to change
+		socket.watchingVariables = params.watch
 		// should we still be watching?
 		let shouldWatch = sockets.map({ $0.watchingVariables }).contains(true)
 		// either toggle if overall change in state, otherwise ask for updated list so socket can know all the current values
 		do {
-			var cmd = try coder.toggleVariableWatch(enable: shouldWatch)
+			var cmd = try coder.toggleVariableWatch(enable: shouldWatch, contextId: params.contextId)
 			if shouldWatch, shouldWatch == watchingVariables {
 				// ask for updated values
-				cmd = try coder.listVariables(deltaOnly: false)
+				cmd = try coder.listVariables(deltaOnly: false, contextId: params.contextId)
 			}
 			try worker?.send(data: cmd)
 			watchingVariables = shouldWatch
@@ -420,7 +430,8 @@ extension Session {
 	}
 	
 	func handleVariableValueResponse(data: ComputeCoder.VariableData) {
-		let responseObject = SessionResponse.variableValue(data.variable)
+		let value = SessionResponse.VariableValueData(value: data.variable, contextId: data.contextId)
+		let responseObject = SessionResponse.variableValue(value)
 		if let clientId = data.clientId {
 			broadcast(object: responseObject, toClient: clientId)
 		} else {
@@ -431,7 +442,7 @@ extension Session {
 	func handleVariableListResponse(data: ComputeCoder.ListVariablesData) {
 		// we send to everyone, even those not watching
 		Log.info("handling list variable data with \(data.variables.count) variables")
-		let varData = SessionResponse.ListVariablesData(values: data.variables, removed: data.removed, delta: data.delta)
+		let varData = SessionResponse.ListVariablesData(values: data.variables, removed: data.removed, contextId: data.contextId, delta: data.delta)
 		Log.info("forwarding \(data.variables.count) variables")
 		broadcastToAllClients(object: SessionResponse.variables(varData))
 	}

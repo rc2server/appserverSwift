@@ -47,7 +47,7 @@ class ComputeCoderTests: XCTestCase {
 	
 	// MARK: - request tests
 	func testGetVariable() {
-		let data = try! coder.getVariable(name: "foo123", clientIdentifier: 11)
+		let data = try! coder.getVariable(name: "foo123", contextId: nil, clientIdentifier: 11)
 		let json = try! decoder.decode(JsonResponse.self, from: data)
 		XCTAssertEqual(json.msg, "getVariable")
 		XCTAssertEqual(json.argument, "foo123")
@@ -86,7 +86,7 @@ class ComputeCoderTests: XCTestCase {
 	}
 
 	func testToggleWatch() {
-		let data = try! coder.toggleVariableWatch(enable: true)
+		let data = try! coder.toggleVariableWatch(enable: true, contextId: nil)
 		let json = try! decoder.decode(JsonResponse.self, from: data)
 		XCTAssertEqual(json.msg, "toggleVariableWatch")
 		XCTAssertEqual(json.argument, "")
@@ -101,7 +101,7 @@ class ComputeCoderTests: XCTestCase {
 	}
 	
 	func testListVariables() {
-		let data = try! coder.listVariables(deltaOnly: true)
+		let data = try! coder.listVariables(deltaOnly: true, contextId: nil)
 		let json = try! decoder.decode(JsonResponse.self, from: data)
 		XCTAssertEqual(json.msg, "listVariables")
 		XCTAssertEqual(json.argument, "")

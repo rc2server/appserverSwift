@@ -160,7 +160,7 @@ open class Rc2DAO {
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
 	public func getProjects(ownedBy: User, connection: Connection? = nil) throws -> [Project] {
 		let projectNodes = try getRows(tableName: "rcproject", keyName: "userId", keyValue: Node(integerLiteral: ownedBy.id))
-		return try projectNodes.flatMap { try Project(node: $0) }
+		return try projectNodes.compactMap { try Project(node: $0) }
 	}
 	
 	// MARK: - Workspaces
@@ -186,7 +186,7 @@ open class Rc2DAO {
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
 	public func getWorkspaces(project: Project, connection: Connection? = nil) throws -> [Workspace] {
 		let nodes = try getRows(tableName: "rcworkspace", keyName: "projectId", keyValue: Node(integerLiteral: project.id))
-		return try nodes.flatMap { try Workspace(node: $0) }
+		return try nodes.compactMap { try Workspace(node: $0) }
 	}
 	
 	/// Çreates a new workspace
@@ -273,7 +273,7 @@ open class Rc2DAO {
 	/// - Throws: .duplicate if more than one row in database matched, Node errors if problem parsing results
 	public func getFiles(workspace: Workspace, connection: Connection? = nil) throws -> [File] {
 		let nodes = try getRows(tableName: "rcfile", keyName: "wspaceid", keyValue: Node(integerLiteral: workspace.id))
-		return try nodes.flatMap { try File(node: $0) }
+		return try nodes.compactMap { try File(node: $0) }
 	}
 	
 	/// gets the contents of a file
@@ -407,7 +407,7 @@ open class Rc2DAO {
 	/// - Throws: Node errors if problem fetching from database
 	public func getImages(imageIds: [Int]?) throws -> [SessionImage] {
 		guard let imageIds = imageIds, imageIds.count > 0 else { return [] }
-		let idstring = imageIds.flatMap { String($0) }.joined(separator: ",")
+		let idstring = imageIds.compactMap { String($0) }.joined(separator: ",")
 		let query = "select * from sessionimage where id in (\(idstring)) order by id"
 		let results = try getRows(query: query)
 		return try results.map { try SessionImage(node: $0) }
