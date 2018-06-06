@@ -1,0 +1,8 @@
+language: swift
+os: osx
+osx_image: xcode9.3
+before_script:
+- gem install xcpretty
+script:
+- swift package generate-xcodeproj --xcconfig-overrides Mac.xcconfig
+- set -i pipefail && xcodebuild clean build test -scheme Rc2AppServer-Package -enableCodeCoverage YES

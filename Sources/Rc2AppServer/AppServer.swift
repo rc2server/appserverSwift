@@ -109,7 +109,7 @@ open class AppServer {
 		initializeLogging(path: settings.config.logfilePath)
 		
 		do {
-			try dao.connect(host: settings.config.dbHost, user: "rc2", database: "rc2")
+			try dao.connect(host: settings.config.dbHost, user: settings.config.dbUser, database: settings.config.dbName, password: settings.config.dbPassword)
 			authManager = AuthManager(settings: settings)
 			fileHandler = FileHandler(settings: settings)
 			infoHandler = InfoHandler(settings: settings)

@@ -30,9 +30,9 @@ open class Rc2DAO {
 		queue = DispatchQueue(label: "database serial queue")
 	}
 	
-	public func connect(host: String, user: String, database: String) throws {
+	public func connect(host: String, user: String, database: String, password: String) throws {
 		precondition(pgdb == nil)
-		pgdb = try PostgreSQL.Database(hostname: host, database: database, user: user, password: "")
+		pgdb = try PostgreSQL.Database(hostname: host, database: database, user: user, password: password)
 	}
 	
 	public func createTokenDAO() -> LoginTokenDAO {

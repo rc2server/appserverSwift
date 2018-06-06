@@ -81,6 +81,8 @@ public struct AppConfiguration: Decodable {
 	public let dbUser: String
 	/// The name of the user to connect as. Defaults to "rc2".
 	public let dbName: String
+	/// The password to connect to the database. Defaults to "rc2".
+	public let dbPassword: String
 	/// The host name of the compute engine. Defaults to "compute".
 	public let computeHost: String
 	/// The port of the compute engine. Defaults to 7714.
@@ -98,6 +100,7 @@ public struct AppConfiguration: Decodable {
 		case dbHost
 		case dbUser
 		case dbName
+		case dbPassword
 		case computeHost
 		case computePort
 		case computeTimeout
@@ -115,6 +118,7 @@ public struct AppConfiguration: Decodable {
 		dbHost = try container.decodeIfPresent(String.self, forKey: .dbHost) ?? "dbserver"
 		dbUser = try container.decodeIfPresent(String.self, forKey: .dbUser) ?? "rc2"
 		dbName = try container.decodeIfPresent(String.self, forKey: .dbName) ?? "rc2"
+		dbPassword = try container.decodeIfPresent(String.self, forKey: .dbPassword) ?? "rc2"
 		computeHost = try container.decodeIfPresent(String.self, forKey: .computeHost) ?? "compute"
 		computePort = try container.decodeIfPresent(UInt16.self, forKey: .computePort) ?? 7714
 		computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
