@@ -39,7 +39,7 @@ class AuthManager: BaseHandler {
 		}
 		do {
 			let params: LoginParams = try settings.decode(data: Data(Array.init(jsonBytes)))
-			Log.info("attempting login for '\(params.login)' using '\(params.password)'")
+			Log.debug("attempting login for '\(params.login)' using '\(params.password)'")
 			guard let user = try self.settings.dao.getUser(login: params.login, password: params.password) else {
 				//invalid login
 				Log.info("invalid login for \(params.login)")
@@ -56,6 +56,7 @@ class AuthManager: BaseHandler {
 				return
 			}
 			let token = try encoder.sign(alg: .hs256, key: psecret)
+			Log.info("generated token \(token) for \(params.login)")
 			//send json data
 			let responseData = try settings.encode(LoginResponse(token: token))
 			response.bodyBytes.append(contentsOf: responseData.makeBytes())

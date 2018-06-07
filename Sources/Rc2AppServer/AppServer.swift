@@ -106,10 +106,12 @@ open class AppServer {
 		dao = Rc2DAO()
 		parseCommandLine()
 		settings = AppSettings(dataDirURL: dataDirURL, dao: dao)
-		initializeLogging(path: settings.config.logfilePath)
+		initializeLogging(path: settings.config.logfilePath, level: settings.config.initialLogLevel)
 		
 		do {
+			Log.info("connecting to database")
 			try dao.connect(host: settings.config.dbHost, user: settings.config.dbUser, database: settings.config.dbName, password: settings.config.dbPassword)
+			Log.info("connected to database")
 			authManager = AuthManager(settings: settings)
 			fileHandler = FileHandler(settings: settings)
 			infoHandler = InfoHandler(settings: settings)
@@ -145,11 +147,12 @@ open class AppServer {
 		}
 	}
 	
-	private func initializeLogging(path: String) {
+	private func initializeLogging(path: String, level: LogLevel) {
 		// setup logging
-		let config = DefaultLogConfiguration(level: .info)
+		let config = DefaultLogConfiguration(level: level)
 		let logger = Logger(config: config)
 		logger.append(handler: StdErrHandler(config: config, formatter: nil))
 		Log.enableLogging(logger)
+		Log.info("logging enabled (\(config.globalLevel))")
 	}
 }

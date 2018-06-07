@@ -6,6 +6,7 @@
 
 import Foundation
 import servermodel
+import MJLLogger
 
 public struct AppSettings {
 	/// URL for a directory that contains resources used by the application.
@@ -93,6 +94,8 @@ public struct AppConfiguration: Decodable {
 	public let computeDbHost: String
 	/// The largest amount of file data to return over the websocket. Anything higher should be fetched via REST. In KB
 	public let maximumWebSocketFileSizeKB: Int
+	/// The initial log level. Defaults to info
+	public let initialLogLevel: LogLevel
 	/// Path to store log files
 	public let logfilePath: String
 	
@@ -107,6 +110,7 @@ public struct AppConfiguration: Decodable {
 		case computeDbHost
 		case maximumWebSocketFileSizeKB
 		case logFilePath
+		case initialLogLevel
 	}
 	
 	/// Initializes from serialization.
@@ -131,6 +135,11 @@ public struct AppConfiguration: Decodable {
 			maximumWebSocketFileSizeKB = desiredSize
 		} else {
 			maximumWebSocketFileSizeKB = 600
+		}
+		if let levelStr = try container.decodeIfPresent(Int.self, forKey: .initialLogLevel), let level = LogLevel(rawValue: levelStr) {
+			initialLogLevel = level
+		} else {
+			initialLogLevel = .info
 		}
 	}
 }

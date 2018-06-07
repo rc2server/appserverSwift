@@ -9,6 +9,7 @@ import PerfectHTTPServer
 import PerfectHTTP
 import PerfectCrypto
 import servermodel
+import MJLLogger
 
 fileprivate let psecret = "32342fsa"
 
@@ -22,11 +23,13 @@ class AuthRequestFilter: HTTPRequestFilter {
 	func filter(request: HTTPRequest, response: HTTPResponse, callback: (HTTPRequestFilterResult) -> ()) {
 		// filter doesn't apply to login and logout
 		guard request.path != "/login" else {
+			Log.debug("skipping auth for /login")
 			callback(.continue(request, response))
 			return
 		}
 		// find the authorization header
 		guard let rawHeader = request.header(.authorization) else {
+			Log.debug("failed to find auth header")
 			response.completed(status: .forbidden)
 			callback(.halt(request, response))
 			return
@@ -35,13 +38,14 @@ class AuthRequestFilter: HTTPRequestFilter {
 		let prefix = "Bearer "
 		let tokenIndex = rawHeader.index(rawHeader.startIndex, offsetBy: prefix.count)
 		let token = String(rawHeader[tokenIndex...])
-		print("token \(token)")
+		Log.debug("auth found token \(token)")
 		// parse and verify the token
 		guard let verifier = JWTVerifier(token),
 			let _ = try? verifier.verify(algo: .hs256, key: psecret),
 			let loginToken = LoginToken(verifier.payload),
 			tokenDAO.validate(token: loginToken)
 			else {
+				Log.info("token failed validation")
 				response.completed(status: .forbidden)
 				callback(.halt(request, response))
 				return
