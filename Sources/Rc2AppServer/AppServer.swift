@@ -86,13 +86,20 @@ open class AppServer {
 	
 	func parseCommandLine() {
 		let cli = CommandLine()
-		let dataDir = StringOption(shortFlag: "D", longFlag: "datadir", required: true, helpMessage: "Specify path to directory with data files")
+		let dataDir = StringOption(shortFlag: "D", longFlag: "datadir", helpMessage: "Specify path to directory with data files")
 		cli.addOption(dataDir)
 		let portOption = IntOption(shortFlag: "p", helpMessage: "Port to listen to (defaults to 8088)")
 		cli.addOption(portOption)
 		do {
 			try cli.parse()
-			dataDirURL = URL(fileURLWithPath: dataDir.value!)
+			var dirPath: String?
+			if dataDir.wasSet {
+				dirPath = dataDir.value!
+			} else {
+				dirPath = ProcessInfo.processInfo.environment["RC2_DATA_DIR"]
+			}
+			guard let actualPath = dirPath else { throw Errors.invalidDataDirectory }
+			dataDirURL = URL(fileURLWithPath: actualPath)
 			guard dataDirURL.hasDirectoryPath else { throw Errors.invalidDataDirectory }
 			if let pvalue = portOption.value { listenPort = pvalue }
 		} catch {
