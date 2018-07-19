@@ -1,4 +1,4 @@
-// swift-tools-version:4.0
+// swift-tools-version:4.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -14,20 +14,21 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-		.package(url: "https://github.com/mlilback/MJLLogger.git", .revision("c79a790")),
-		.package(url: "https://github.com/bignerdranch/Freddy.git", from: "3.0.2"),
+        .package(path: "../MJLLogger"),
+        .package(path: "../Freddy"),
+//		.package(url: "https://github.com/mlilback/MJLLogger.git", .revision("c79a790")),
+//		.package(url: "https://github.com/bignerdranch/Freddy.git", from: "3.0.2"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-HTTPServer.git", from: "3.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-WebSockets.git", from: "3.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/PerfectLib.git", from: "3.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-HTTP.git", from: "3.0.0"),
-		.package(url: "https://github.com/PerfectlySoft/Perfect-Net.git", from: "3.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-Zip.git", from: "3.0.0"),
 //		.package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", from: "3.0.0"),
 //		.package(url: "https://github.com/PerfectlySoft/Perfect-CZlib-src.git", from: "0.0.1"),
 		.package(url: "https://github.com/mlilback/postgresql.git", .revision("dae1219")),
-		.package(url: "https://github.com/vapor/bits.git", .upToNextMajor(from: "1.1.0")),
 		.package(url: "https://github.com/vapor/node.git", from: "2.1.1"),
-		.package(url: "https://github.com/rc2server/appModelSwift.git", from: "0.1.1"),
+        .package(path: "../appmodel"),
+//		.package(url: "https://github.com/rc2server/appModelSwift.git", from: "0.1.1"),
 		.package(url: "https://github.com/IBM-Swift/BlueSignals.git", from: "1.0.0"),
 		.package(url: "https://github.com/rc2server/CommandLine.git", .revision("f15b41a")),
     ],
