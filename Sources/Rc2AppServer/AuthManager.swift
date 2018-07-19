@@ -22,8 +22,8 @@ class AuthManager: BaseHandler {
 	
 	func authRoutes() -> [Route] {
 		var routes = [Route]()
-		routes.append(Route(method: .post, uri: "/login", handler: login))
-		routes.append(Route(method: .delete, uri: "/login", handler: logout))
+		routes.append(Route(method: .post, uri:  settings.config.urlPrefixToIgnore + "/login", handler: login))
+		routes.append(Route(method: .delete, uri:  settings.config.urlPrefixToIgnore + "/login", handler: logout))
 		return routes
 	}
 	

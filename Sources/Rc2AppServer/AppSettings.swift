@@ -98,6 +98,8 @@ public struct AppConfiguration: Decodable {
 	public let initialLogLevel: LogLevel
 	/// Path to store log files
 	public let logfilePath: String
+	/// URL prefix to ignore when parsing urls (e.g. "/v1" or "/dev")
+	public let urlPrefixToIgnore: String
 	
 	enum CodingKeys: String, CodingKey {
 		case dbHost
@@ -111,6 +113,7 @@ public struct AppConfiguration: Decodable {
 		case maximumWebSocketFileSizeKB
 		case logFilePath
 		case initialLogLevel
+		case urlPrefixToIgnore
 	}
 	
 	/// Initializes from serialization.
@@ -126,6 +129,7 @@ public struct AppConfiguration: Decodable {
 		computeHost = try container.decodeIfPresent(String.self, forKey: .computeHost) ?? "compute"
 		computePort = try container.decodeIfPresent(UInt16.self, forKey: .computePort) ?? 7714
 		computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
+		urlPrefixToIgnore = try container.decodeIfPresent(String.self, forKey: .urlPrefixToIgnore) ?? ""
 		let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
 		computeDbHost = cdb == nil ? dbHost : cdb!
 		// default to 600 KB. Some kind of issues with sending messages larger than UInt16.max

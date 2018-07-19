@@ -14,9 +14,9 @@ class FileHandler: BaseHandler {
 
 	func routes() -> [Route] {
 		var routes = [Route]()
-		routes.append(Route(method: .post, uri: "/file/create/{wspaceId}", handler: createFile))
-		routes.append(Route(method: .put, uri: "/file/{fileId}", handler: uploadData))
-		routes.append(Route(method: .get, uri: "/file/{fileId}", handler: downloadData))
+		routes.append(Route(method: .post, uri: settings.config.urlPrefixToIgnore + "/file/create/{wspaceId}", handler: createFile))
+		routes.append(Route(method: .put, uri: settings.config.urlPrefixToIgnore + "/file/{fileId}", handler: uploadData))
+		routes.append(Route(method: .get, uri: settings.config.urlPrefixToIgnore + "/file/{fileId}", handler: downloadData))
 		return routes
 	}
 

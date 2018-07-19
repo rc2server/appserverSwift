@@ -77,7 +77,7 @@ open class AppServer {
 		defRoutes.append(contentsOf: infoHandler.routes())
 		defRoutes.append(contentsOf: modelHandler.routes())
 
-		defRoutes.append(Route(method: .get, uri: "/ws/{wsId}") { request, response in
+		defRoutes.append(Route(method: .get, uri: settings.config.urlPrefixToIgnore + "/ws/{wsId}") { request, response in
 			self.websocketHandler.handleRequest(request: request, response: response)
 		})
 		
@@ -120,7 +120,7 @@ open class AppServer {
 			print("failed to connect to database \(error)")
 			exit(1)
 		}
-		requestFilters.append((AuthRequestFilter(dao: dao.createTokenDAO()), .high))
+		requestFilters.append((AuthRequestFilter(dao: dao.createTokenDAO(), settings: settings), .high))
 
 		server.setRequestFilters(requestFilters)
 		sessionHandler = SessionHandler(settings: settings)

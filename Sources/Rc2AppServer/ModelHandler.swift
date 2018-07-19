@@ -18,8 +18,8 @@ class ModelHandler: BaseHandler {
 
 	func routes() -> [Route] {
 		var routes = [Route]()
-		routes.append(Route(method: .post, uri: "/proj/{projId}/wspace", handler: createWorkspace))
-		routes.append(Route(method: .delete, uri: "/proj/{projId}/wspace/{wspaceId}", handler: deleteWorkspace))
+		routes.append(Route(method: .post, uri: settings.config.urlPrefixToIgnore + "/proj/{projId}/wspace", handler: createWorkspace))
+		routes.append(Route(method: .delete, uri: settings.config.urlPrefixToIgnore + "/proj/{projId}/wspace/{wspaceId}", handler: deleteWorkspace))
 		return routes
 	}
 	

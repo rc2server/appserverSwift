@@ -12,7 +12,7 @@ import Rc2Model
 class InfoHandler: BaseHandler {
 	func routes() -> [Route] {
 		var routes = [Route]()
-		routes.append(Route(method: .get, uri: "/info", handler: getBulkInfo))
+		routes.append(Route(method: .get, uri: settings.config.urlPrefixToIgnore + "/info", handler: getBulkInfo))
 		return routes
 	}
 	

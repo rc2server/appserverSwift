@@ -15,18 +15,24 @@ fileprivate let psecret = "32342fsa"
 
 class AuthRequestFilter: HTTPRequestFilter {
 	private let tokenDAO: LoginTokenDAO
+	private let settings: AppSettings
+	private let loginPath: String
 	
-	init(dao: LoginTokenDAO) {
+	init(dao: LoginTokenDAO, settings: AppSettings) {
 		tokenDAO = dao
+		self.settings = settings
+		loginPath = settings.config.urlPrefixToIgnore + "/login"
+		Log.debug("login path=\(loginPath)")
 	}
 	
 	func filter(request: HTTPRequest, response: HTTPResponse, callback: (HTTPRequestFilterResult) -> ()) {
 		// filter doesn't apply to login and logout
-		guard request.path != "/login" else {
+		guard request.path != loginPath else {
 			Log.debug("skipping auth for /login")
 			callback(.continue(request, response))
 			return
 		}
+		Log.debug("authenticating for \(request.path)")
 		// find the authorization header
 		guard let rawHeader = request.header(.authorization) else {
 			Log.debug("failed to find auth header")
