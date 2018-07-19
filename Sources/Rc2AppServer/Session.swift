@@ -243,11 +243,12 @@ extension Session {
 	}
 	
 	private func handleClearEnvironment(id: Int) {
-		do {
-			let cmd = try coder
-		} catch {
-			Log.warn("error clearing environment \(error)")
-		}
+		// TODO: implement
+		//do {
+		//	let cmd = try coder
+		//} catch {
+		//	Log.warn("error clearing environment \(error)")
+		//}
 	}
 	
 	private func handleGetVariable(params: SessionCommand.VariableParams, socket: SessionSocket) {
