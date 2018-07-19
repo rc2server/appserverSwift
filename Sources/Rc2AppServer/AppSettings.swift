@@ -100,6 +100,8 @@ public struct AppConfiguration: Decodable {
 	public let logfilePath: String
 	/// URL prefix to ignore when parsing urls (e.g. "/v1" or "/dev")
 	public let urlPrefixToIgnore: String
+	/// Should the compute engine be launched via Kubernetes, or connected to via computeHost/computePort settings
+	public let computeViaK8s: Bool
 	
 	enum CodingKeys: String, CodingKey {
 		case dbHost
@@ -114,6 +116,7 @@ public struct AppConfiguration: Decodable {
 		case logFilePath
 		case initialLogLevel
 		case urlPrefixToIgnore
+		case computeViaK8s
 	}
 	
 	/// Initializes from serialization.
@@ -130,6 +133,7 @@ public struct AppConfiguration: Decodable {
 		computePort = try container.decodeIfPresent(UInt16.self, forKey: .computePort) ?? 7714
 		computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
 		urlPrefixToIgnore = try container.decodeIfPresent(String.self, forKey: .urlPrefixToIgnore) ?? ""
+		computeViaK8s = try container.decodeIfPresent(Bool.self, forKey: .computeViaK8s) ?? false
 		let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
 		computeDbHost = cdb == nil ? dbHost : cdb!
 		// default to 600 KB. Some kind of issues with sending messages larger than UInt16.max
