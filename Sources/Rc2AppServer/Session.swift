@@ -21,7 +21,7 @@ class Session {
 	private(set) var lastClientDisconnectTime: Date?
 	private var worker: ComputeWorker?
 	let coder: ComputeCoder
-	private var sessionId: Int!
+	private var sessionId: Int?
 	private var isOpen: Bool = false
 	private var watchingVariables = false
 	
@@ -34,20 +34,23 @@ class Session {
 		coder = ComputeCoder()
 	}
 	
-	public func startSession() throws {
+	public func startSession(host: String, port: UInt16) throws {
 		do {
 			sessionId = try settings.dao.createSessionRecord(wspaceId: workspace.id)
+			Log.info("got sessionId: \(sessionId ?? -1)")
 		} catch {
 			Log.error("failed to create session record \(error)")
 			throw error
 		}
+		// the following should never fails, as we throw an error if fail to get a number
+		guard let sessionId = sessionId else { fatalError() }
 		let net = NetTCP()
 		do {
-			try net.connect(address: settings.config.computeHost, port: settings.config.computePort, timeoutSeconds: settings.config.computeTimeout)
+			try net.connect(address: host, port: port, timeoutSeconds: settings.config.computeTimeout)
 			{ socket in
 				guard let socket = socket else { fatalError() }
 				Log.info("connected to compute server")
-				self.worker = ComputeWorker(workspace: self.workspace, sessionId: self.sessionId, socket: socket, settings: self.settings, delegate: self)
+				self.worker = ComputeWorker(workspace: self.workspace, sessionId: sessionId, socket: socket, settings: self.settings, delegate: self)
 				self.worker?.start()
 			}
 		} catch {

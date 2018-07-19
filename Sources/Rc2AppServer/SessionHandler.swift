@@ -54,7 +54,7 @@ public class SessionHandler: WebSocketSessionHandler {
 				session = Session(workspace: wspace, settings: settings)
 				activeSessions[wspaceId] = session
 				do {
-					try session?.startSession()
+					try session?.startSession(host: settings.config.computeHost, port: settings.config.computePort)
 				} catch {
 					fatalError("failed to start session \(error)")
 				}
