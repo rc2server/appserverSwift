@@ -28,7 +28,7 @@ let package = Package(
 		.package(url: "https://github.com/vapor/bits.git", .upToNextMajor(from: "1.1.0")),
 		.package(url: "https://github.com/vapor/node.git", from: "2.1.1"),
 		.package(url: "https://github.com/rc2server/appModelSwift.git", from: "0.1.1"),
-		.package(url: "https://github.com/IBM-Swift/BlueSignals.git", from: "0.9.48"),
+		.package(url: "https://github.com/IBM-Swift/BlueSignals.git", from: "1.0.0"),
 		.package(url: "https://github.com/rc2server/CommandLine.git", .revision("f15b41a")),
     ],
     targets: [
