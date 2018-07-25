@@ -15,6 +15,7 @@ fileprivate let ConnectTimeout = 5
 
 public enum ComputeError: Error {
 	case invalidHeader
+	case failedToConnect
 	case failedToReadMessage
 	case failedToWrite
 	case invalidFormat
@@ -50,7 +51,8 @@ public class ComputeWorker {
 			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: settings.config.computeDbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName))
 		} catch {
 			Log.error("Error opening compute connection: \(error)")
-			// TODO close Session and tell client
+			delegate?.handleCompute(error: ComputeError.failedToConnect)
+			// TODO close Session
 		}
 		readNext()
 	}
