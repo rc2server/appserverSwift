@@ -49,7 +49,6 @@ class Session {
 			try net.connect(address: host, port: port, timeoutSeconds: settings.config.computeTimeout)
 			{ socket in
 				guard let socket = socket else { fatalError() }
-				Log.info("connected to compute server")
 				self.worker = ComputeWorker(workspace: self.workspace, sessionId: sessionId, socket: socket, settings: self.settings, delegate: self)
 				self.worker?.start()
 			}

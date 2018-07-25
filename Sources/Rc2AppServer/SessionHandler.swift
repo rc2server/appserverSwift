@@ -10,15 +10,25 @@ import PerfectWebSockets
 import PerfectHTTP
 import MJLLogger
 import Rc2Model
+import BrightFutures
 
 public class SessionHandler: WebSocketSessionHandler {
 	private let settings: AppSettings
 	private var activeSessions: [Int: Session] = [:]
 	public var socketProtocol: String? = "rsession"
 	private let lockQueue = DispatchQueue(label: "session handler")
+	private var k8sServer: K8sServer?
 	
 	init(settings: AppSettings) {
 		self.settings = settings
+		if settings.config.computeViaK8s {
+			do {
+				self.k8sServer = try K8sServer()
+			} catch {
+				Log.error("failed to create K8sServer: \(error)")
+				fatalError("failed to create K8sServer")
+			}
+		}
 		// TODO: need to schedule a timer that cleans up any sessions with no clients
 	}
 	
@@ -48,16 +58,21 @@ public class SessionHandler: WebSocketSessionHandler {
 			return
 		}
 		// now have a workspace & user. find session
+		let computePort = settings.config.computePort
 		lockQueue.sync {
 			var session = activeSessions[wspaceId]
 			if nil == session {
 				session = Session(workspace: wspace, settings: settings)
 				activeSessions[wspaceId] = session
-				do {
-					// TODO: use k8s to open compute session if necessary
-					try session?.startSession(host: settings.config.computeHost, port: settings.config.computePort)
-				} catch {
-					fatalError("failed to start session \(error)")
+				getComputeAddress(wspaceId: wspaceId).onSuccess { ipAddr in 
+					do {
+						try session?.startSession(host: ipAddr, port: computePort)
+					} catch {
+						Log.error("startSession failed: \(error)")
+						self.reportError(socket: socket, error: SessionError.failedToConnectToCompute)
+					}
+				}.onFailure { error in 
+					self.reportError(socket: socket, error: SessionError.failedToConnectToCompute)
 				}
 			}
 			//add connection to session
@@ -67,6 +82,27 @@ public class SessionHandler: WebSocketSessionHandler {
 		}
 	}
 	
+	private func getComputeAddress(wspaceId: Int) -> Future<String, K8sError> {
+		let promise = Promise<String, K8sError>()
+		guard let server = k8sServer, settings.config.computeViaK8s else {
+			Log.info("returning shared compute host")
+			promise.success(settings.config.computeHost)
+			return promise.future
+		}
+		Log.info("looking up ip address")
+		server.hostName(wspaceId: wspaceId).onSuccess { ipAddr in 
+			Log.info("got compute ip \(ipAddr ?? "nil")")
+			promise.success(ipAddr ?? self.settings.config.computeHost)
+		}.onFailure { error in 
+			promise.failure(error)
+		}
+		return promise.future
+	}
+
+//	private func launchCompute(wspaceId: Int) -> Promise<String> {
+//		return .value("invalid")
+//	}
+
 	/// sends an error message on the socket and then closes it
 	fileprivate func reportError(socket: WebSocket, error: SessionError)
 	{

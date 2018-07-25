@@ -23,6 +23,7 @@ let package = Package(
 		.package(url: "https://github.com/PerfectlySoft/PerfectLib.git", from: "3.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-HTTP.git", from: "3.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-Zip.git", from: "3.0.0"),
+		.package(url: "https://github.com/PerfectlySoft/Perfect-CURL.git", from: "3.0.0"),
 //		.package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", from: "3.0.0"),
 //		.package(url: "https://github.com/PerfectlySoft/Perfect-CZlib-src.git", from: "0.0.1"),
 		.package(url: "https://github.com/mlilback/postgresql.git", .revision("dae1219")),
@@ -31,6 +32,8 @@ let package = Package(
 //		.package(url: "https://github.com/rc2server/appModelSwift.git", from: "0.1.1"),
 		.package(url: "https://github.com/IBM-Swift/BlueSignals.git", from: "1.0.0"),
 		.package(url: "https://github.com/rc2server/CommandLine.git", .revision("f15b41a")),
+//        .package(url: "https://github.com/Thomvis/BrightFutures.git", from: "6.0.1"),
+        .package(path: "../BrightFutures"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -40,7 +43,7 @@ let package = Package(
             dependencies: ["Rc2AppServer"]),
         .target(
             name: "Rc2AppServer",
-            dependencies: ["Freddy", "PerfectLib", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "PerfectZip", "servermodel", "CommandLine", "Rc2Model", "Signals", "MJLLogger"]),
+            dependencies: ["Freddy", "BrightFutures", "PerfectLib", "PerfectCURL", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "PerfectZip", "servermodel", "CommandLine", "Rc2Model", "Signals", "MJLLogger"]),
         .target(
         	name: "servermodel",
         	dependencies: ["Freddy", "Node", "PostgreSQL", "Rc2Model"]),
