@@ -60,7 +60,9 @@ class Session {
 	}
 	
 	public func shutdown() throws {
-		try settings.dao.closeSessionRecord(sessionId: sessionId)
+		if let sessionId = sessionId {
+			try settings.dao.closeSessionRecord(sessionId: sessionId)
+		}
 		try worker?.shutdown()
 		lockQueue.sync {
 			for aSocket in sockets {
