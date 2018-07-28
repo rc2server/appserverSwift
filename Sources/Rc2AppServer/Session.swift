@@ -372,6 +372,13 @@ extension Session: ComputeWorkerDelegate {
 			Log.error("error shutting down after compute error: \(error)")
 		}
 	}
+
+	/// something about the status of the compute engine changed
+	func handleCompute(statusUpdate: SessionResponse.ComputeStatus) {
+		// inform clients that status changed
+		broadcastToAllClients(object: SessionResponse.computeStatus(statusUpdate))
+		// TODO: use state machine to block sending compute messages while not .running
+	}
 }
 
 // MARK: - response handling

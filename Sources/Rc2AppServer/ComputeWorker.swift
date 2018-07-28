@@ -25,6 +25,7 @@ public enum ComputeError: Error {
 public protocol ComputeWorkerDelegate: class {
 	func handleCompute(data: Data)
 	func handleCompute(error: ComputeError)
+	func handleCompute(statusUpdate: SessionResponse.ComputeStatus)
 }
 
 public class ComputeWorker {
