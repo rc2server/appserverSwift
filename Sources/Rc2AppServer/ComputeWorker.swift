@@ -60,7 +60,6 @@ public class ComputeWorker {
 	
 	public func shutdown() throws {
 		try send(data: compute.close())
-		try settings.dao.closeSessionRecord(sessionId: sessionId)
 	}
 	
 	public func send(data: Data) throws {
