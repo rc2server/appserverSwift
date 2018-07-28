@@ -19,6 +19,7 @@ public enum ComputeError: Error {
 	case failedToReadMessage
 	case failedToWrite
 	case invalidFormat
+	case notConnected
 	case unknown
 }
 
@@ -26,6 +27,12 @@ public protocol ComputeWorkerDelegate: class {
 	func handleCompute(data: Data)
 	func handleCompute(error: ComputeError)
 	func handleCompute(statusUpdate: SessionResponse.ComputeStatus)
+}
+
+/// used for a state machine of the connection status
+private enum ComputeState: Int, CaseIterable {
+	case uninitialized
+	case connected
 }
 
 public class ComputeWorker {
@@ -37,6 +44,7 @@ public class ComputeWorker {
 	private(set) weak var delegate: ComputeWorkerDelegate?
 	private let encoder = AppSettings.createJSONEncoder()
 	private let decoder = AppSettings.createJSONDecoder()
+	private var state : ComputeState = .uninitialized
 	private let compute = ComputeCoder()
 	
 	public init(workspace: Workspace, sessionId: Int, socket: NetTCP, settings: AppSettings, delegate: ComputeWorkerDelegate) {
@@ -59,10 +67,18 @@ public class ComputeWorker {
 	}
 	
 	public func shutdown() throws {
+		guard state == .connected else {
+			Log.info("asked to shutdown when not running")
+			return
+		}
 		try send(data: compute.close())
 	}
 	
 	public func send(data: Data) throws {
+		guard state == .connected else {
+			delegate?.handleCompute(error: .notConnected)
+			return
+		}
 		// write header
 		var headBytes = [UInt8](repeating: 0, count: 8)
 		headBytes.replaceSubrange(0...3, with: valueByteArray(UInt32(0x21).byteSwapped))
