@@ -76,10 +76,7 @@ public class ComputeWorker {
 	}
 	
 	public func send(data: Data) throws {
-		guard state == .connected else {
-			delegate?.handleCompute(error: .notConnected)
-			return
-		}
+		guard state == .connected else { throw ComputeError.notConnected }
 		// write header
 		var headBytes = [UInt8](repeating: 0, count: 8)
 		headBytes.replaceSubrange(0...3, with: valueByteArray(UInt32(0x21).byteSwapped))
