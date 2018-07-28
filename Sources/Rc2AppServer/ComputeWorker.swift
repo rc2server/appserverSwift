@@ -30,7 +30,7 @@ public protocol ComputeWorkerDelegate: class {
 }
 
 /// used for a state machine of the connection status
-private enum ComputeState: Int, CaseIterable {
+enum ComputeState: Int, CaseIterable {
 	case uninitialized
 	case connected
 }
@@ -45,7 +45,7 @@ public class ComputeWorker {
 	private(set) weak var delegate: ComputeWorkerDelegate?
 	private let encoder = AppSettings.createJSONEncoder()
 	private let decoder = AppSettings.createJSONDecoder()
-	private var state : ComputeState = .uninitialized
+	private(set) var state : ComputeState = .uninitialized
 	private let compute = ComputeCoder()
 	
 	public init(workspace: Workspace, sessionId: Int, socket: NetTCP, config: AppConfiguration, delegate: ComputeWorkerDelegate) {
@@ -70,7 +70,7 @@ public class ComputeWorker {
 	public func shutdown() throws {
 		guard state == .connected else {
 			Log.info("asked to shutdown when not running")
-			return
+			throw ComputeError.notConnected
 		}
 		try send(data: compute.close())
 	}
