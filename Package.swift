@@ -34,6 +34,7 @@ let package = Package(
 		.package(url: "https://github.com/rc2server/CommandLine.git", .revision("f15b41a")),
 //        .package(url: "https://github.com/Thomvis/BrightFutures.git", from: "6.0.1"),
         .package(path: "../BrightFutures"),
+        .package(url: "https://github.com/stencilproject/Stencil.git", from: "0.11.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -43,7 +44,7 @@ let package = Package(
             dependencies: ["Rc2AppServer"]),
         .target(
             name: "Rc2AppServer",
-            dependencies: ["Freddy", "BrightFutures", "PerfectLib", "PerfectCURL", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "PerfectZip", "servermodel", "CommandLine", "Rc2Model", "Signals", "MJLLogger"]),
+            dependencies: ["Freddy", "BrightFutures", "Stencil", "PerfectLib", "PerfectCURL", "PerfectHTTP", "PerfectHTTPServer", "PerfectWebSockets", "PerfectZip", "servermodel", "CommandLine", "Rc2Model", "Signals", "MJLLogger"]),
         .target(
         	name: "servermodel",
         	dependencies: ["Freddy", "Node", "PostgreSQL", "Rc2Model"]),
