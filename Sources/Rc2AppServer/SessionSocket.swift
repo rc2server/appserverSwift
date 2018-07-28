@@ -42,6 +42,12 @@ class SessionSocket: Hashable {
 		}
 	}
 	
+	func close() {
+		lockQueue.sync {
+			socket.close()
+		}
+	}
+
 	func send(data: Data, completion: (@escaping () -> Void)) {
 		lockQueue.sync {
 			// TODO: this is copying the bytes. Is this possible to do w/o a copy? Maybe not, since it happens asynchronously

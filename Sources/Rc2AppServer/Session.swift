@@ -61,6 +61,12 @@ class Session {
 	
 	public func shutdown() throws {
 		try worker?.shutdown()
+		lockQueue.sync {
+			for aSocket in sockets {
+				aSocket.close()
+				aSocket.session = nil
+			}
+		}
 		sockets.removeAll()
 	}
 	
@@ -359,6 +365,12 @@ extension Session: ComputeWorkerDelegate {
 	/// - Parameter error: the local error code
 	func handleCompute(error: ComputeError) {
 		Log.error("got error from compute engine \(error)")
+		// TODO: handle error properly
+		do {
+			try shutdown()
+		} catch {
+			Log.error("error shutting down after compute error: \(error)")
+		}
 	}
 }
 
