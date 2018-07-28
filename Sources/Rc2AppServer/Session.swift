@@ -49,7 +49,7 @@ class Session {
 			try net.connect(address: host, port: port, timeoutSeconds: settings.config.computeTimeout)
 			{ socket in
 				guard let socket = socket else { fatalError() }
-				self.worker = ComputeWorker(workspace: self.workspace, sessionId: sessionId, socket: socket, settings: self.settings, delegate: self)
+				self.worker = ComputeWorker(workspace: self.workspace, sessionId: sessionId, socket: socket, config: self.settings.config, delegate: self)
 				self.worker?.start()
 			}
 		} catch {

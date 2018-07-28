@@ -35,10 +35,11 @@ private enum ComputeState: Int, CaseIterable {
 	case connected
 }
 
+/// handles raw socket connection to the compute server, including making the connection
 public class ComputeWorker {
 	let socket: NetTCP
 	let readBuffer = Bytes()
-	let settings: AppSettings
+	let config: AppConfiguration
 	let workspace: Workspace
 	let sessionId: Int
 	private(set) weak var delegate: ComputeWorkerDelegate?
@@ -47,17 +48,17 @@ public class ComputeWorker {
 	private var state : ComputeState = .uninitialized
 	private let compute = ComputeCoder()
 	
-	public init(workspace: Workspace, sessionId: Int, socket: NetTCP, settings: AppSettings, delegate: ComputeWorkerDelegate) {
+	public init(workspace: Workspace, sessionId: Int, socket: NetTCP, config: AppConfiguration, delegate: ComputeWorkerDelegate) {
 		self.workspace = workspace
 		self.sessionId = sessionId
 		self.socket = socket
-		self.settings = settings
+		self.config = config
 		self.delegate = delegate
 	}
 	
 	public func start() {
 		do {
-			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: settings.config.computeDbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName))
+			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: config.computeDbHost, dbuser: config.dbUser, dbname: config.dbName))
 		} catch {
 			Log.error("Error opening compute connection: \(error)")
 			delegate?.handleCompute(error: ComputeError.failedToConnect)
