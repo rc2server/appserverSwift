@@ -102,6 +102,10 @@ public struct AppConfiguration: Decodable {
 	public let urlPrefixToIgnore: String
 	/// Should the compute engine be launched via Kubernetes, or connected to via computeHost/computePort settings
 	public let computeViaK8s: Bool
+	/// Path where stencil templates for k8s are found. Defaults to "/rc2/k8s-templates"
+	public let k8sStencilPath: String
+	/// The Docker image to use for the compute pods
+	public let computeImage: String
 	
 	enum CodingKeys: String, CodingKey {
 		case dbHost
@@ -117,6 +121,8 @@ public struct AppConfiguration: Decodable {
 		case initialLogLevel
 		case urlPrefixToIgnore
 		case computeViaK8s
+		case k8sStencilPath
+		case computeImage
 	}
 	
 	/// Initializes from serialization.
@@ -134,6 +140,8 @@ public struct AppConfiguration: Decodable {
 		computeTimeout = try container.decodeIfPresent(Double.self, forKey: .computeTimeout) ?? 4.0
 		urlPrefixToIgnore = try container.decodeIfPresent(String.self, forKey: .urlPrefixToIgnore) ?? ""
 		computeViaK8s = try container.decodeIfPresent(Bool.self, forKey: .computeViaK8s) ?? false
+		k8sStencilPath = try container.decodeIfPresent(String.self, forKey: .k8sStencilPath) ?? "/rc2/k8s-templates"
+		computeImage = try container.decodeIfPresent(String.self, forKey: .computeImage) ?? "docker.rc2.io/compute:latest"
 		let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
 		computeDbHost = cdb == nil ? dbHost : cdb!
 		// default to 600 KB. Some kind of issues with sending messages larger than UInt16.max
