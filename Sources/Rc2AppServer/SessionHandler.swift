@@ -80,70 +80,16 @@ public class SessionHandler: WebSocketSessionHandler {
 			// need to create session and start compute engine
 			session = Session(workspace: wspace, settings: settings)
 			activeSessions[wspaceId] = session
-			// if using shared compute engine, do that and return
-			guard let server = k8sServer, settings.config.computeViaK8s else {
-				Log.info("returning shared compute host")
-				do {
-					try session?.startSession(host: settings.config.computeHost, port: computePort)
-				} catch {
-					Log.error("error starting session to shared compute engine \(error)")
-					self.reportError(socket: socket, error: SessionError.failedToConnectToCompute)
-				}
-				return
-			}
-			// get the ip address of running compute container
-			getComputeIpAddress(wspaceId: wspaceId).flatMap { ipAddr -> Future<String?, K8sError> in
-				// if running, return that ip address 
-				if let curIp = ipAddr {
-					Log.info("found existing ipAddress")
-					return Future<String?, K8sError>(value: curIp)
-				}
-				// launch compute and then get the address of the launched container
-				Log.info("launching compute")
-				return server.launchCompute(wspaceId: wspaceId).flatMap { _ -> Future<String?, K8sError> in 
-					Log.info("launched compute, looking up address")
-					return self.getComputeIpAddress(wspaceId: wspaceId)
-				}
-			}.onSuccess { ipAddr in 
-				// got an existing ip or launched a new one.
-				Log.info("got an existing ipAddr or launched compute and got ip \(ipAddr ?? "nil")")
-				do {
-					guard let ipAddr = ipAddr else { throw K8sError.connectionFailed }
-					try session?.startSession(host: ipAddr, port: computePort)
-				} catch {
-					Log.error("startSession failed: \(error)")
-					self.reportError(socket: socket, error: SessionError.failedToConnectToCompute)
-				}
-			}.onFailure { error in 
+			do {
+				try session!.startSession(k8sServer: k8sServer)
+			} catch {
+				Log.info("error starting new session: \(error)")
 				self.reportError(socket: socket, error: SessionError.failedToConnectToCompute)
+				return
 			}
 		}
 	}
 	
-	// gets the status info from the k8s server. If there is a pod and it is running, returns the ip address for it
-	private func getComputeIpAddress(wspaceId: Int) -> Future<String?, K8sError> {
-		let promise = Promise<String?, K8sError>()
-		k8sServer!.computeStatus(wspaceId: wspaceId).flatMap { status -> Future<String?, K8sError> in
-			// if not running, then return nil address
-			guard let actualStatus = status else {
-				return Future<String?, K8sError>(value: nil)
-			}
-			// check status
-			if let ipAddr = status?.ipAddr, actualStatus.isRunning {
-				return Future<String?, K8sError>(value: ipAddr)
-			} else {
-				// TODO: need to wait if pending, delete otherwise so it can be launched. return better error
-				Log.info("compute pod exists, but not in running state")
-				return Future<String?, K8sError>(error: .connectionFailed)
-			}
-		}.onSuccess { ipAddr in 
-			promise.success(ipAddr)
-		}.onFailure { error in 
-			promise.failure(error)
-		}
-		return promise.future
-	}
-
 	/// sends an error message on the socket and then closes it
 	fileprivate func reportError(socket: WebSocket, error: SessionError)
 	{

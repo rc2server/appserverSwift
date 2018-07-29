@@ -34,7 +34,7 @@ class Session {
 		coder = ComputeCoder()
 	}
 	
-	public func startSession(host: String, port: UInt16) throws {
+	public func startSession(k8sServer: K8sServer?) throws {
 		do {
 			sessionId = try settings.dao.createSessionRecord(wspaceId: workspace.id)
 			Log.info("got sessionId: \(sessionId ?? -1)")
@@ -44,18 +44,8 @@ class Session {
 		}
 		// the following should never fails, as we throw an error if fail to get a number
 		guard let sessionId = sessionId else { fatalError() }
-		let net = NetTCP()
-		do {
-			try net.connect(address: host, port: port, timeoutSeconds: settings.config.computeTimeout)
-			{ socket in
-				guard let socket = socket else { fatalError() }
-				self.worker = ComputeWorker(workspace: self.workspace, sessionId: sessionId, socket: socket, config: self.settings.config, delegate: self)
-				self.worker?.start()
-			}
-		} catch {
-			Log.error("failed to connect to compute engine")
-			throw error
-		}
+		worker = ComputeWorker(workspace: workspace, sessionId: sessionId, k8sServer: k8sServer, config: settings.config, delegate: self)
+		worker!.start()
 		try settings.dao.addFileChangeObserver(wspaceId: workspace.id, callback: handleFileChanged)
 	}
 	

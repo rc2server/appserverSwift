@@ -34,17 +34,19 @@ class K8sServer {
     }
 
     /// Fires off a job to kubernetes to start a compute instance for the specified workspace
+    /// - Parameter wspaceId: the id of the workspace the compute engine will be using
+    /// - Parameter sessionId: the unique, per-session id this compute instance is for
     /// - Returns: future is always true if no error happend
     /// FIXME: need to delay return value until the compute container is running and accepting connections
-    func launchCompute(wspaceId: Int) -> Future<Bool, K8sError> {
+    func launchCompute(wspaceId: Int, sessionId: Int) -> Future<Bool, K8sError> {
         let promise = Promise<Bool, K8sError>()
         // for now only support basicComputeJob
         let jobString: String
         do {
-            let context = ["wspaceId": String(wspaceId), "computeImage": config.computeImage]
+            let context = ["wspaceId": String(wspaceId), "computeImage": config.computeImage, "sessionId": String(sessionId)]
             jobString = try stencilEnv.renderTemplate(name: "basicComputeJob.json", context: context)
             // for debugging purposes, log the job request
-            try jobString.write(to: URL(fileURLWithPath: "/tmp/job-\(wspaceId).json"), atomically: true, encoding: .utf8)
+            try jobString.write(to: URL(fileURLWithPath: "/tmp/job-\(wspaceId)-\(sessionId).json"), atomically: true, encoding: .utf8)
         } catch {
             Log.error("failed to load compute job template: \(error)")
             promise.failure(.invalidConfiguration)
@@ -127,8 +129,8 @@ class K8sServer {
     ///
     /// - parameter sessionId: the sessionId to find an open compute session
     /// - returns: the hostname for the specified session, or nil if there is no such session running
-    func computeStatus(wspaceId: Int) -> Future<ComputePodStatus?, K8sError> {
-        let rawUrl = "https://kubernetes.default.svc/api/v1/namespaces/default/pods?limit=1&labelSelector=workspace%3D\(wspaceId)"
+    func computeStatus(sessionId: Int) -> Future<ComputePodStatus?, K8sError> {
+        let rawUrl = "https://kubernetes.default.svc/api/v1/namespaces/default/pods?limit=1&labelSelector=sessionId%3D\(sessionId)"
         let request = CURLRequest(rawUrl, options: [.sslCAFilePath("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")])
         request.addHeader(.authorization, value: "Bearer \(token)")
         request.addHeader(.accept, value: "application/json")
@@ -158,11 +160,10 @@ class K8sServer {
                     phaseEnum = .unknown
                 }
                 let status = ComputePodStatus(ipAddr: ipAddr, phase: phaseEnum)
-                // FIXME: need to return nil if pod isn't running
                 promise.success(status)
             } catch JSON.Error.indexOutOfBounds(_) {
                 // no pod found
-                Log.info("no pod found for \(wspaceId)")
+                Log.info("no pod found for \(sessionId)")
                 promise.success(nil)
             } catch {
                 Log.warn("failed to find workspace pod: \(error)")
