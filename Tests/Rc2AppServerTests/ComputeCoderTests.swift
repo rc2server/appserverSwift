@@ -114,7 +114,7 @@ class ComputeCoderTests: XCTestCase {
 		let dbHost = "dbserver"
 		let dbUser = "rc2"
 		let dbName = "rc2d"
-		let data = try! coder.openConnection(wspaceId: wspaceId, sessionId: sessionId, dbhost: dbHost, dbuser: dbUser, dbname: dbName)
+		let data = try! coder.openConnection(wspaceId: wspaceId, sessionId: sessionId, dbhost: dbHost, dbuser: dbUser, dbname: dbName, dbpassword: "rc2")
 		let response = try! decoder.decode(ComputeCoder.OpenCommand.self, from: data)
 		XCTAssertEqual(response.msg, "open")
 		XCTAssertEqual(response.wspaceId, wspaceId)
