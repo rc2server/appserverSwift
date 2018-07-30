@@ -70,7 +70,7 @@ public class ComputeWorker {
 	public func start() {
 		assert(state == .uninitialized, "programmer error: invalid state")
 		guard config.computeViaK8s else {
-			connectToMonolithicServer()
+			openConnection(ipAddr: config.computeHost)
 			return
 		}
 		guard let k8sServer = k8sServer else { fatalError("programmer error: can't use k8s without a k8s server") }
@@ -147,25 +147,9 @@ public class ComputeWorker {
 	}
 
 	private func openConnection(ipAddr: String) {
-
-	}
-	
-	private func connectionOpened() {
-		do {
-			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: config.computeDbHost, dbuser: config.dbUser, dbname: config.dbName, dbpassword: config.dbPassword))
-
-		} catch {
-			Log.error("Error opening compute connection: \(error)")
-			delegate?.handleCompute(error: ComputeError.failedToConnect)
-			// TODO close Session
-		}
-		readNext()
-	}
-
-	private func connectToMonolithicServer() {
 		let net = NetTCP()
 		do {
-			try net.connect(address: config.computeHost, port: config.computePort, timeoutSeconds: config.computeTimeout)
+			try net.connect(address: ipAddr, port: config.computePort, timeoutSeconds: config.computeTimeout)
 			{ newSocket in
 				guard let newSocket = newSocket else { 
 					self.delegate?.handleCompute(error: ComputeError.failedToConnect)
@@ -180,6 +164,18 @@ public class ComputeWorker {
 		}
 	}
 	
+	private func connectionOpened() {
+		do {
+			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: config.computeDbHost, dbuser: config.dbUser, dbname: config.dbName, dbpassword: config.dbPassword))
+
+		} catch {
+			Log.error("Error opening compute connection: \(error)")
+			delegate?.handleCompute(error: ComputeError.failedToConnect)
+			// TODO close Session
+		}
+		readNext()
+	}
+
 	private func readNext() {
 		guard let socket = socket else { fatalError() }
 		socket.readBytesFully(count: 8, timeoutSeconds: -1) { bytes in
