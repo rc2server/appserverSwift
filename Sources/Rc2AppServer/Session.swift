@@ -44,7 +44,7 @@ class Session {
 		}
 		// the following should never fails, as we throw an error if fail to get a number
 		guard let sessionId = sessionId else { fatalError() }
-		worker = ComputeWorker(workspace: workspace, sessionId: sessionId, k8sServer: k8sServer, config: settings.config, delegate: self)
+		worker = ComputeWorker(wspaceId: workspace.id, sessionId: sessionId, k8sServer: k8sServer, config: settings.config, delegate: self)
 		worker!.start()
 		try settings.dao.addFileChangeObserver(wspaceId: workspace.id, callback: handleFileChanged)
 	}
@@ -367,10 +367,36 @@ extension Session: ComputeWorkerDelegate {
 	}
 
 	/// something about the status of the compute engine changed
-	func handleCompute(statusUpdate: SessionResponse.ComputeStatus) {
-		// inform clients that status changed
-		broadcastToAllClients(object: SessionResponse.computeStatus(statusUpdate))
-		// TODO: use state machine to block sending compute messages while not .running
+	func handleCompute(statusUpdate: ComputeState) {
+		var clientUpdate: SessionResponse.ComputeStatus?
+		switch statusUpdate {
+		case .uninitialized:
+			fatalError("state should be impossible")
+		case .initialHostSearch:
+			clientUpdate = .initializing
+		case .loading:
+			clientUpdate = .loading
+		case .connecting:
+			clientUpdate = .initializing
+		case .connected:
+			// send open connection message
+			do {
+				let message = try coder.openConnection(wspaceId: workspace.id, sessionId: sessionId!, dbhost: settings.config.computeDbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName, dbpassword: settings.config.dbPassword)
+				try worker!.send(data: message)
+			} catch {
+				Log.error("failed to send open connection message: \(error)")
+				broadcastToAllClients(object: SessionResponse.ComputeStatus.failed)
+				try? shutdown()
+			}
+		case .failedToConnect:
+			clientUpdate = .failed
+		case .unusable:
+			clientUpdate = .failed
+		}
+		if let status = clientUpdate {
+			// inform clients that status changed
+			broadcastToAllClients(object: status)
+		}
 	}
 }
 
@@ -382,6 +408,11 @@ extension Session {
 			Log.error("Error in response to open compute connection: \(err)")
 			let errorObj = SessionResponse.error(SessionResponse.ErrorData(transactionId: nil, error: SessionError.failedToConnectToCompute))
 			broadcastToAllClients(object: errorObj)
+			do {
+				try shutdown()
+			} catch {
+				Log.error("error shutting down after failed to open compute engine: \(error)")
+			}
 		}
 	}
 	
