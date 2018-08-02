@@ -395,7 +395,8 @@ extension Session: ComputeWorkerDelegate {
 		}
 		if let status = clientUpdate {
 			// inform clients that status changed
-			broadcastToAllClients(object: status)
+			Log.info("sending compute status \(status)")
+			broadcastToAllClients(object: SessionResponse.computeStatus(status))
 		}
 	}
 }
