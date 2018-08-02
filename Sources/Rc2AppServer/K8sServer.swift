@@ -67,7 +67,7 @@ class K8sServer {
                     return
                 }
                 // HACK: wait a bit to return so have time to start up
-                DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(2000)) {
+                DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(1000)) {
                     Log.info("delayed return after launch")
                     promise.success(true)
                 }
@@ -79,46 +79,10 @@ class K8sServer {
         return promise.future
     }
 
-    /// Looks for a pod running a compute engine for the specified sessionId.
-    ///
-    /// - parameter sessionId: the sessionId to find an open compute session
-    /// - returns: the hostname for the specified session, or nil if there is no such session running
-    func hostName(wspaceId: Int) -> Future<String?, K8sError> {
-        let rawUrl = "https://kubernetes.default.svc/api/v1/namespaces/default/pods?limit=1&labelSelector=workspace%3D\(wspaceId)"
-        let request = CURLRequest(rawUrl, options: [.sslCAFilePath("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")])
-        request.addHeader(.authorization, value: "Bearer \(token)")
-        request.addHeader(.accept, value: "application/json")
-
-        let promise = Promise<String?, K8sError>()
-        request.perform { confirmation in 
-            let rdata: Data
-            do {
-                let response = try confirmation()
-                rdata = Data(response.bodyBytes)
-            } catch {
-                Log.error("curl got error: \(error)")
-                promise.failure(K8sError.invalidResponse)
-                return
-            }
-            do {
-                let json = try JSON(data: rdata)
-                let ipAddr = try json.getString(at: "items", 0, "status", "podIP")
-                let phase = try json.getString(at: "items", 0, "phase")
-                Log.info("got ipAddr \(ipAddr), phase=\(phase)")
-                // FIXME: need to return nil if pod isn't running
-                promise.success(ipAddr)
-            } catch {
-                Log.warn("failed to find workspace pod: \(error)")
-                promise.success(nil)
-            }
-        }
-        return promise.future
-    }
-
     /// represents the current status of a compute pod
     struct ComputePodStatus {
         enum Phase: String { case pending, running, succeeded, failed, unknown }
-        let ipAddr: String
+        let ipAddr: String?
         let phase: Phase
 
         var isRunning: Bool { if case .running = phase { return true }; return false }
@@ -150,9 +114,9 @@ class K8sServer {
             }
             do {
                 let json = try JSON(data: rdata)
-                let ipAddr = try json.getString(at: "items", 0, "status", "podIP")
+                let ipAddr = try json.decode(at: "items", 0, "status", "podIP", alongPath: .missingKeyBecomesNil, type: String.self)
                 let phase = try json.getString(at: "items", 0, "status", "phase").lowercased()
-                Log.info("got ipAddr \(ipAddr), phase=\(phase)")
+                Log.info("got ipAddr \(ipAddr ?? "-"), phase=\(phase)")
                 let phaseEnum: ComputePodStatus.Phase
                 if let parsedPhase = ComputePodStatus.Phase(rawValue: phase) {
                     phaseEnum = parsedPhase

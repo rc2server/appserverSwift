@@ -118,7 +118,13 @@ public class ComputeWorker {
 			case .pending:
 				self.waitForPendingPod()
 			case .running:
-				self.openConnection(ipAddr: status.ipAddr)
+				guard let ipAddr = status.ipAddr else {
+					Log.warn("running pod has no ip")
+					self.state = .failedToConnect
+					self.delegate?.handleCompute(error: .failedToConnect)
+					return
+				}
+				self.openConnection(ipAddr: ipAddr)
 			case .succeeded:
 				// previous job is still there. Which means this sessionId has already been used and something is fucked up
 				Log.error("pod for \(self.sessionId) is already successful")
@@ -178,6 +184,8 @@ public class ComputeWorker {
 					return
 				}
 				self.socket = newSocket
+				Log.info("compute worker opened socket")
+				self.state = .connected
 				self.delegate?.handleCompute(statusUpdate: .connected)
 				self.readNext()
 			}
