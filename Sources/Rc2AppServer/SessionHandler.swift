@@ -12,12 +12,16 @@ import MJLLogger
 import Rc2Model
 import BrightFutures
 
+/// how many seconds between checks for sessions needing to be reaped
+fileprivate let reapTimerInterval = 5.0
+
 public class SessionHandler: WebSocketSessionHandler {
 	private let settings: AppSettings
 	private var activeSessions: [Int: Session] = [:]
 	public var socketProtocol: String? = "rsession"
 	private let lockQueue = DispatchQueue(label: "session handler")
 	private var k8sServer: K8sServer?
+	private var reapingTimer: RepeatingTimer
 	
 	init(settings: AppSettings) {
 		self.settings = settings
@@ -26,10 +30,32 @@ public class SessionHandler: WebSocketSessionHandler {
 				self.k8sServer = try K8sServer(config: settings.config)
 			} catch {
 				Log.error("failed to create K8sServer: \(error)")
-				fatalError("failed to create K8sServer")
+				fatalError("failed to create K8sServer ")
 			}
 		}
-		// TODO: need to schedule a timer that cleans up any sessions with no clients
+		// we check often to see if reaping is necessary. but if no sessions, we suspend the timer
+		let delay = Double(settings.config.sessionReapDelay)
+		reapingTimer = RepeatingTimer(timeInterval: min(reapTimerInterval, delay))
+		reapingTimer.eventHandler = { [weak self] in
+			guard let me = self else { return }
+			let reapTime = Date.timeIntervalSinceReferenceDate - delay
+			for (wspaceId, session) in me.activeSessions {
+				if let lastTime = session.lastClientDisconnectTime, lastTime.timeIntervalSinceReferenceDate < reapTime {
+					do {
+						Log.info("reaping session \(session.sessionId ?? 0)")
+						try session.shutdown()
+					} catch {
+						Log.error("error reaping session \(error)")
+					}
+					me.activeSessions.removeValue(forKey: wspaceId)
+				}
+			}
+			if me.activeSessions.count == 0 {
+				Log.info("suspending reaper")
+				me.reapingTimer.suspend() //will resume when a new session is opened
+			}
+		}
+		// will be resumed when a session is opened
 	}
 	
 	// validates input from a request for a session
@@ -80,6 +106,8 @@ public class SessionHandler: WebSocketSessionHandler {
 			// need to create session and start compute engine
 			session = Session(workspace: wspace, settings: settings)
 			activeSessions[wspaceId] = session
+			Log.info("resuming reaper")
+			reapingTimer.resume()
 			do {
 				try session!.startSession(k8sServer: k8sServer)
 			} catch {

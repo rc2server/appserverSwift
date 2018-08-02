@@ -106,6 +106,8 @@ public struct AppConfiguration: Decodable {
 	public let k8sStencilPath: String
 	/// The Docker image to use for the compute pods
 	public let computeImage: String
+	/// How long a session be allowed to stay im memory without any users before it is reaped. in seconds. Defaults to 300.
+	public let sessionReapDelay: Int
 	
 	enum CodingKeys: String, CodingKey {
 		case dbHost
@@ -123,6 +125,7 @@ public struct AppConfiguration: Decodable {
 		case computeViaK8s
 		case k8sStencilPath
 		case computeImage
+		case sessionReapDelay
 	}
 	
 	/// Initializes from serialization.
@@ -151,6 +154,12 @@ public struct AppConfiguration: Decodable {
 			maximumWebSocketFileSizeKB = desiredSize
 		} else {
 			maximumWebSocketFileSizeKB = 600
+		}
+		if let desiredReapTime = try container.decodeIfPresent(Int.self, forKey: .sessionReapDelay), desiredReapTime >= 0, desiredReapTime < 3600
+		{
+			sessionReapDelay = desiredReapTime
+		} else {
+			sessionReapDelay = 300
 		}
 		if let levelStr = try container.decodeIfPresent(Int.self, forKey: .initialLogLevel), let level = LogLevel(rawValue: levelStr) {
 			initialLogLevel = level
