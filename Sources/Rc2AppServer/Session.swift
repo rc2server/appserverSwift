@@ -21,7 +21,7 @@ class Session {
 	private(set) var lastClientDisconnectTime: Date?
 	private var worker: ComputeWorker?
 	let coder: ComputeCoder
-	private var sessionId: Int?
+	public private(set) var sessionId: Int?
 	private var isOpen: Bool = false
 	private var watchingVariables = false
 	
@@ -32,6 +32,11 @@ class Session {
 		self.settings = settings
 		self.lockQueue = DispatchQueue(label: "workspace \(workspace.id)")
 		coder = ComputeCoder()
+	}
+	
+	
+	deinit {
+		Log.info("session for wspace \(workspace.id) deallocated")
 	}
 	
 	public func startSession(k8sServer: K8sServer?) throws {
@@ -52,6 +57,11 @@ class Session {
 	public func shutdown() throws {
 		if let sessionId = sessionId {
 			try settings.dao.closeSessionRecord(sessionId: sessionId)
+		}
+		do { 
+			try worker?.send(data: try coder.close())
+		} catch {
+			Log.warn("error sending close command: \(error)")
 		}
 		try worker?.shutdown()
 		lockQueue.sync {
@@ -127,6 +137,7 @@ extension Session {
 	///
 	/// - Parameter socket: the socket to remove from this session
 	func remove(socket: SessionSocket) {
+		Log.info("removing socket \(sockets.count)")
 		lockQueue.sync {
 			sockets.remove(socket)
 			socket.session = nil
@@ -414,7 +425,9 @@ extension Session {
 			} catch {
 				Log.error("error shutting down after failed to open compute engine: \(error)")
 			}
+			return
 		}
+		broadcastToAllClients(object: SessionResponse.computeStatus(.running))
 	}
 	
 	func handleExecComplete(data: ComputeCoder.ExecCompleteData) {
