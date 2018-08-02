@@ -7,5 +7,6 @@ XCTMain([
     testCase(FileChangeMonitorTests.allTests),
     testCase(VariableJsonTests.allTests),
     testCase(ComputeCoderTests.allTests),
-    testCase(ComputeWorkerTests.allTests)
+    testCase(ComputeWorkerTests.allTests),
+    testCase(SessionTests.allTests),
 ])

@@ -19,6 +19,7 @@ class SessionTests: XCTestCase {
 	
 	static var allTests = [
 		("testHelp", testHelp),
+		("testSessionStatus", testSessionStatus),
 		]
 
 	override func setUp() {
@@ -142,6 +143,19 @@ class SessionTests: XCTestCase {
 		}
 	}
 	
+	func testSessionStatus() {
+		let status = SessionResponse.ComputeStatus.loading
+		let statusRsp = SessionResponse.computeStatus(status)
+		let data = try! settings.encode(statusRsp)
+		XCTAssertNotNil(data)
+		let response: SessionResponse = try! settings.decode(data: data)
+		guard case let SessionResponse.computeStatus(rstatus) = response else {
+			XCTFail("failed to decode status")
+			return
+		}
+		XCTAssertEqual(status, rstatus)
+	}
+
 	func testComputeError() {
 		let json = """
 		{ "msg":"error", "errorCode": \(SessionErrorCode.unknownFile.rawValue), "errorDetails": "foo.txt missing" }
