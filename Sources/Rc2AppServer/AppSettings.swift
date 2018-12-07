@@ -39,18 +39,20 @@ public struct AppSettings {
 	/// - Parameter configData: JSON data for configuration. If nil, will read it from dataDirURL.
 	/// - Parameter dao: The Data Access Object used to retrieve model objects from the database.
 	init(dataDirURL: URL, configData: Data? = nil, dao: Rc2DAO) {
+		Log.info("settings inited with: \(dataDirURL.absoluteString)")
 		self.dataDirURL = dataDirURL
 		self.dao = dao
 
 		self.encoder = AppSettings.createJSONEncoder()
 		self.decoder = AppSettings.createJSONDecoder()
 
+		var configUrl: URL!
 		do {
-			let configUrl = dataDirURL.appendingPathComponent("config.json")
+			configUrl = dataDirURL.appendingPathComponent("config.json")
 			let data = configData != nil ? configData! : try Data(contentsOf: configUrl)
 			config = try decoder.decode(AppConfiguration.self, from: data)
 		} catch {
-			fatalError("failed to load config file \(error)")
+			fatalError("failed to load config file \(configUrl.absoluteString) \(error)")
 		}
 	}
 	
