@@ -71,6 +71,7 @@ class Session {
 			}
 		}
 		sockets.removeAll()
+		Log.info("session for wspace \(workspace.id) shutdown")
 	}
 	
 	// MARK: - Hashable/Equatable

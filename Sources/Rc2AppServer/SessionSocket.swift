@@ -89,6 +89,7 @@ class SessionSocket: Hashable {
 	
 	/// called when remote closes the connection
 	private func closed() {
+		Log.info("remote closed socket connection")
 		delegate.closed(socket: self)
 	}
 	
