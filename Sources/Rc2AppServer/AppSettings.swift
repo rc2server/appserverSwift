@@ -110,6 +110,8 @@ public struct AppConfiguration: Decodable {
 	public let computeImage: String
 	/// How long a session be allowed to stay im memory without any users before it is reaped. in seconds. Defaults to 300.
 	public let sessionReapDelay: Int
+	/// How long to wait for compute pod to complete startup after confirmation message. Defaults to 2000 milliseconds
+	public let computeStartupDelay: Int
 	
 	enum CodingKeys: String, CodingKey {
 		case dbHost
@@ -128,6 +130,7 @@ public struct AppConfiguration: Decodable {
 		case k8sStencilPath
 		case computeImage
 		case sessionReapDelay
+		case computeStartupDelay
 	}
 	
 	/// Initializes from serialization.
@@ -149,6 +152,7 @@ public struct AppConfiguration: Decodable {
 		computeImage = try container.decodeIfPresent(String.self, forKey: .computeImage) ?? "docker.rc2.io/compute:latest"
 		let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
 		computeDbHost = cdb == nil ? dbHost : cdb!
+		computeStartupDelay = try container.decodeIfPresent(Int.self, forKey: .computeStartupDelay) ?? 2000
 		// default to 600 KB. Some kind of issues with sending messages larger than UInt16.max
 		if let desiredSize = try container.decodeIfPresent(Int.self, forKey: .maximumWebSocketFileSizeKB),
 			desiredSize <= 600, desiredSize > 0

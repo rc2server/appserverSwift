@@ -67,8 +67,8 @@ class K8sServer {
                     return
                 }
                 // HACK: wait a bit to return so have time to start up
-                DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(5000)) {
-                    Log.info("delayed return after launch")
+                DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(self.config.computeStartupDelay)) {
+                    Log.info("delayed return after launch for \(self.config.computeStartupDelay) ms")
                     promise.success(true)
                 }
             } catch {
