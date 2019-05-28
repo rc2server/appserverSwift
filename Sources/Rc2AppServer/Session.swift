@@ -393,6 +393,7 @@ extension Session: ComputeWorkerDelegate {
 		case .connected:
 			// send open connection message
 			do {
+				Log.debug("connecting to compute with '\(settings.config.dbPassword)'")
 				let message = try coder.openConnection(wspaceId: workspace.id, sessionId: sessionId!, dbhost: settings.config.computeDbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName, dbpassword: settings.config.dbPassword)
 				try worker!.send(data: message)
 			} catch {
