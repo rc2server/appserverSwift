@@ -31,12 +31,12 @@ class AuthRequestFilter: HTTPRequestFilter {
 	func filter(request: HTTPRequest, response: HTTPResponse, callback: (HTTPRequestFilterResult) -> ()) {
 		// filter doesn't apply to login and logout
 		guard !authIgnorePaths.contains(request.path) else {
-			Log.debug("skipping auth for '\(request.path)' from \(request.remoteAddress)")
+//			Log.debug("skipping auth for '\(request.path)' from \(request.remoteAddress)")
 			callback(.continue(request, response))
 			return
 		}
-		Log.info("filtering for '\(request.path) from \(request.remoteAddress)")
-		Log.debug("authenticating for \(request.path)")
+//		Log.info("filtering for '\(request.path) from \(request.remoteAddress)")
+//		Log.debug("authenticating for \(request.path)")
 		// find the authorization header
 		guard let rawHeader = request.header(.authorization) else {
 			Log.debug("failed to find auth header")
