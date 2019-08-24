@@ -39,18 +39,20 @@ public struct AppSettings {
 	/// - Parameter configData: JSON data for configuration. If nil, will read it from dataDirURL.
 	/// - Parameter dao: The Data Access Object used to retrieve model objects from the database.
 	init(dataDirURL: URL, configData: Data? = nil, dao: Rc2DAO) {
+		Log.info("settings inited with: \(dataDirURL.absoluteString)")
 		self.dataDirURL = dataDirURL
 		self.dao = dao
 
 		self.encoder = AppSettings.createJSONEncoder()
 		self.decoder = AppSettings.createJSONDecoder()
 
+		var configUrl: URL!
 		do {
-			let configUrl = dataDirURL.appendingPathComponent("config.json")
+			configUrl = dataDirURL.appendingPathComponent("config.json")
 			let data = configData != nil ? configData! : try Data(contentsOf: configUrl)
 			config = try decoder.decode(AppConfiguration.self, from: data)
 		} catch {
-			fatalError("failed to load config file \(error)")
+			fatalError("failed to load config file \(configUrl.absoluteString) \(error)")
 		}
 	}
 	
@@ -106,6 +108,10 @@ public struct AppConfiguration: Decodable {
 	public let k8sStencilPath: String
 	/// The Docker image to use for the compute pods
 	public let computeImage: String
+	/// How long a session be allowed to stay im memory without any users before it is reaped. in seconds. Defaults to 300.
+	public let sessionReapDelay: Int
+	/// How long to wait for compute pod to complete startup after confirmation message. Defaults to 2000 milliseconds
+	public let computeStartupDelay: Int
 	
 	enum CodingKeys: String, CodingKey {
 		case dbHost
@@ -123,6 +129,8 @@ public struct AppConfiguration: Decodable {
 		case computeViaK8s
 		case k8sStencilPath
 		case computeImage
+		case sessionReapDelay
+		case computeStartupDelay
 	}
 	
 	/// Initializes from serialization.
@@ -144,6 +152,7 @@ public struct AppConfiguration: Decodable {
 		computeImage = try container.decodeIfPresent(String.self, forKey: .computeImage) ?? "docker.rc2.io/compute:latest"
 		let cdb = try container.decodeIfPresent(String.self, forKey: .computeDbHost)
 		computeDbHost = cdb == nil ? dbHost : cdb!
+		computeStartupDelay = try container.decodeIfPresent(Int.self, forKey: .computeStartupDelay) ?? 2000
 		// default to 600 KB. Some kind of issues with sending messages larger than UInt16.max
 		if let desiredSize = try container.decodeIfPresent(Int.self, forKey: .maximumWebSocketFileSizeKB),
 			desiredSize <= 600, desiredSize > 0
@@ -151,6 +160,12 @@ public struct AppConfiguration: Decodable {
 			maximumWebSocketFileSizeKB = desiredSize
 		} else {
 			maximumWebSocketFileSizeKB = 600
+		}
+		if let desiredReapTime = try container.decodeIfPresent(Int.self, forKey: .sessionReapDelay), desiredReapTime >= 0, desiredReapTime < 3600
+		{
+			sessionReapDelay = desiredReapTime
+		} else {
+			sessionReapDelay = 300
 		}
 		if let levelStr = try container.decodeIfPresent(Int.self, forKey: .initialLogLevel), let level = LogLevel(rawValue: levelStr) {
 			initialLogLevel = level

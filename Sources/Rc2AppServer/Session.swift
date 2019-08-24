@@ -21,7 +21,7 @@ class Session {
 	private(set) var lastClientDisconnectTime: Date?
 	private var worker: ComputeWorker?
 	let coder: ComputeCoder
-	private var sessionId: Int?
+	public private(set) var sessionId: Int?
 	private var isOpen: Bool = false
 	private var watchingVariables = false
 	
@@ -34,7 +34,12 @@ class Session {
 		coder = ComputeCoder()
 	}
 	
-	public func startSession(host: String, port: UInt16) throws {
+	
+	deinit {
+		Log.info("session for wspace \(workspace.id) deallocated")
+	}
+	
+	public func startSession(k8sServer: K8sServer?) throws {
 		do {
 			sessionId = try settings.dao.createSessionRecord(wspaceId: workspace.id)
 			Log.info("got sessionId: \(sessionId ?? -1)")
@@ -44,22 +49,20 @@ class Session {
 		}
 		// the following should never fails, as we throw an error if fail to get a number
 		guard let sessionId = sessionId else { fatalError() }
-		let net = NetTCP()
-		do {
-			try net.connect(address: host, port: port, timeoutSeconds: settings.config.computeTimeout)
-			{ socket in
-				guard let socket = socket else { fatalError() }
-				self.worker = ComputeWorker(workspace: self.workspace, sessionId: sessionId, socket: socket, settings: self.settings, delegate: self)
-				self.worker?.start()
-			}
-		} catch {
-			Log.error("failed to connect to compute engine")
-			throw error
-		}
+		worker = ComputeWorker(wspaceId: workspace.id, sessionId: sessionId, k8sServer: k8sServer, config: settings.config, delegate: self)
+		worker!.start()
 		try settings.dao.addFileChangeObserver(wspaceId: workspace.id, callback: handleFileChanged)
 	}
 	
 	public func shutdown() throws {
+		if let sessionId = sessionId {
+			try settings.dao.closeSessionRecord(sessionId: sessionId)
+		}
+		do { 
+			try worker?.send(data: try coder.close())
+		} catch {
+			Log.warn("error sending close command: \(error)")
+		}
 		try worker?.shutdown()
 		lockQueue.sync {
 			for aSocket in sockets {
@@ -68,6 +71,7 @@ class Session {
 			}
 		}
 		sockets.removeAll()
+		Log.info("session for wspace \(workspace.id) shutdown")
 	}
 	
 	// MARK: - Hashable/Equatable
@@ -134,6 +138,7 @@ extension Session {
 	///
 	/// - Parameter socket: the socket to remove from this session
 	func remove(socket: SessionSocket) {
+		Log.info("removing socket \(sockets.count)")
 		lockQueue.sync {
 			sockets.remove(socket)
 			socket.session = nil
@@ -374,10 +379,38 @@ extension Session: ComputeWorkerDelegate {
 	}
 
 	/// something about the status of the compute engine changed
-	func handleCompute(statusUpdate: SessionResponse.ComputeStatus) {
-		// inform clients that status changed
-		broadcastToAllClients(object: SessionResponse.computeStatus(statusUpdate))
-		// TODO: use state machine to block sending compute messages while not .running
+	func handleCompute(statusUpdate: ComputeState) {
+		var clientUpdate: SessionResponse.ComputeStatus?
+		switch statusUpdate {
+		case .uninitialized:
+			fatalError("state should be impossible")
+		case .initialHostSearch:
+			clientUpdate = .initializing
+		case .loading:
+			clientUpdate = .loading
+		case .connecting:
+			clientUpdate = .initializing
+		case .connected:
+			// send open connection message
+			do {
+				Log.debug("connecting to compute with '\(settings.config.dbPassword)'")
+				let message = try coder.openConnection(wspaceId: workspace.id, sessionId: sessionId!, dbhost: settings.config.computeDbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName, dbpassword: settings.config.dbPassword)
+				try worker!.send(data: message)
+			} catch {
+				Log.error("failed to send open connection message: \(error)")
+				broadcastToAllClients(object: SessionResponse.ComputeStatus.failed)
+				try? shutdown()
+			}
+		case .failedToConnect:
+			clientUpdate = .failed
+		case .unusable:
+			clientUpdate = .failed
+		}
+		if let status = clientUpdate {
+			// inform clients that status changed
+			Log.info("sending compute status \(status)")
+			broadcastToAllClients(object: SessionResponse.computeStatus(status))
+		}
 	}
 }
 
@@ -389,7 +422,14 @@ extension Session {
 			Log.error("Error in response to open compute connection: \(err)")
 			let errorObj = SessionResponse.error(SessionResponse.ErrorData(transactionId: nil, error: SessionError.failedToConnectToCompute))
 			broadcastToAllClients(object: errorObj)
+			do {
+				try shutdown()
+			} catch {
+				Log.error("error shutting down after failed to open compute engine: \(error)")
+			}
+			return
 		}
+		broadcastToAllClients(object: SessionResponse.computeStatus(.running))
 	}
 	
 	func handleExecComplete(data: ComputeCoder.ExecCompleteData) {

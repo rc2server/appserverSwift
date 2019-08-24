@@ -133,7 +133,7 @@ open class Rc2DAO {
 	public func closeSessionRecord(sessionId: Int) throws {
 		guard let pgdb = self.pgdb else { fatalError("Rc2DAO accessed without connection") }
 		let conn = try pgdb.makeConnection()
-		let query = "update sessionrecord set closeDate = now() where id = $1"
+		let query = "update sessionrecord set enddate = now() where id = $1"
 		_ = try conn.execute(query, [sessionId])
 	}
 	

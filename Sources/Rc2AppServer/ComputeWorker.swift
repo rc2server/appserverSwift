@@ -10,60 +10,89 @@ import PerfectNet
 import PerfectLib
 import MJLLogger
 import Rc2Model
+import BrightFutures
 
 fileprivate let ConnectTimeout = 5
+fileprivate let maxFailureRetries = 3
 
 public enum ComputeError: Error {
 	case invalidHeader
+	/// failed to connect to the monolithic server, assume can't retry connection
 	case failedToConnect
 	case failedToReadMessage
 	case failedToWrite
 	case invalidFormat
+	case notConnected
+	case tooManyCrashes
 	case unknown
 }
 
 public protocol ComputeWorkerDelegate: class {
 	func handleCompute(data: Data)
 	func handleCompute(error: ComputeError)
-	func handleCompute(statusUpdate: SessionResponse.ComputeStatus)
+	/// status updates just inform about a state change. If something failed, an error will be reported after the state change
+	func handleCompute(statusUpdate: ComputeState)
 }
 
+/// used for a state machine of the connection status
+public enum ComputeState: Int, CaseIterable {
+	case uninitialized
+	case initialHostSearch
+	case loading
+	case connecting
+	case connected
+	case failedToConnect
+	case unusable
+}
+
+/// handles raw socket connection to the compute server, including making the connection
 public class ComputeWorker {
-	let socket: NetTCP
+	var socket: NetTCP?
 	let readBuffer = Bytes()
-	let settings: AppSettings
-	let workspace: Workspace
+	let config: AppConfiguration
+	let wspaceId: Int
 	let sessionId: Int
+	let k8sServer: K8sServer?
+
 	private(set) weak var delegate: ComputeWorkerDelegate?
 	private let encoder = AppSettings.createJSONEncoder()
 	private let decoder = AppSettings.createJSONDecoder()
-	private let compute = ComputeCoder()
+	private(set) var state : ComputeState = .uninitialized { didSet {
+		delegate?.handleCompute(statusUpdate: state)
+	}}
+//	private let compute = ComputeCoder()
+	private var podFailureCount: Int = 0
 	
-	public init(workspace: Workspace, sessionId: Int, socket: NetTCP, settings: AppSettings, delegate: ComputeWorkerDelegate) {
-		self.workspace = workspace
+	init(wspaceId: Int, sessionId: Int, k8sServer: K8sServer?, config: AppConfiguration, delegate: ComputeWorkerDelegate) {
+		self.wspaceId = wspaceId
 		self.sessionId = sessionId
-		self.socket = socket
-		self.settings = settings
+		self.k8sServer = k8sServer
+		self.config = config
 		self.delegate = delegate
 	}
-	
+
 	public func start() {
-		do {
-			try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: settings.config.computeDbHost, dbuser: settings.config.dbUser, dbname: settings.config.dbName))
-		} catch {
-			Log.error("Error opening compute connection: \(error)")
-			delegate?.handleCompute(error: ComputeError.failedToConnect)
-			// TODO close Session
+		assert(state == .uninitialized, "programmer error: invalid state")
+		guard config.computeViaK8s else {
+			openConnection(ipAddr: config.computeHost)
+			return
 		}
-		readNext()
+		guard k8sServer != nil else { fatalError("programmer error: can't use k8s without a k8s server") }
+		// need to start dance of finding and/or launching the compute k8s pod
+		state = .initialHostSearch
+		updateStatus()
 	}
 	
 	public func shutdown() throws {
-		try send(data: compute.close())
-		try settings.dao.closeSessionRecord(sessionId: sessionId)
+		guard state == .connected else {
+			Log.info("asked to shutdown when not running")
+			throw ComputeError.notConnected
+		}
+		socket?.close()
 	}
 	
 	public func send(data: Data) throws {
+		guard state == .connected, let socket = socket else { throw ComputeError.notConnected }
 		// write header
 		var headBytes = [UInt8](repeating: 0, count: 8)
 		headBytes.replaceSubrange(0...3, with: valueByteArray(UInt32(0x21).byteSwapped))
@@ -76,14 +105,116 @@ public class ComputeWorker {
 		}
 		socket.write(bytes: dataBytes) { _ in }
 	}
+
+	private func updateStatus() {
+		guard let k8sServer = k8sServer else { fatalError("missing k8s server") }
+		k8sServer.computeStatus(sessionId: sessionId).onSuccess { podStatus in
+			guard let status = podStatus else {
+				// not running. launch
+				self.launchCompute()
+				return
+			}
+			switch status.phase {
+			case .pending:
+				self.waitForPendingPod()
+			case .running:
+				guard let ipAddr = status.ipAddr else {
+					Log.warn("running pod has no ip")
+					self.state = .failedToConnect
+					self.delegate?.handleCompute(error: .failedToConnect)
+					return
+				}
+				self.openConnection(ipAddr: ipAddr)
+			case .succeeded:
+				// previous job is still there. Which means this sessionId has already been used and something is fucked up
+				Log.error("pod for \(self.sessionId) is already successful")
+				self.state = .failedToConnect
+				self.delegate?.handleCompute(error: .failedToConnect)
+			case .failed:
+				// if too many failures, inform delegate
+				self.podFailureCount += 1
+				guard self.podFailureCount < maxFailureRetries else {
+					Log.warn("too many pod failures")
+					self.state = .unusable
+					self.delegate?.handleCompute(error: .tooManyCrashes)
+					return
+				}
+				// launch it again
+				self.launchCompute()
+			case .unknown:
+				Log.warn("don't know how to handle unknown pod status")
+				self.state = .failedToConnect
+				self.delegate?.handleCompute(error: .failedToConnect)
+			}
+		}.onFailure { error in 
+			self.state = .failedToConnect
+			self.delegate?.handleCompute(error: .failedToConnect)
+		}
+	}
+
+	private func waitForPendingPod() {
+		self.state = .loading
+		// TODO: this value should really scale with the number of attempts. First should be  second, then after 5 should go to 2 seconds, the after 20 should go to 5 seconds, etc.
+		DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(2)) {
+			self.updateStatus()
+		}
+	}
+
+	private func launchCompute() {
+		guard let k8sServer = k8sServer else { fatalError("missing k8s server") }
+		state = .loading
+		k8sServer.launchCompute(wspaceId: wspaceId, sessionId: sessionId).onSuccess { _ in 
+			self.updateStatus()
+		}.onFailure { error in 
+			Log.error("error launching compute: \(error)")
+			self.state = .unusable
+			self.delegate?.handleCompute(error: .failedToConnect)
+		}
+	}
+
+	private func openConnection(ipAddr: String) {
+		let net = NetTCP()
+		do {
+			try net.connect(address: ipAddr, port: config.computePort, timeoutSeconds: config.computeTimeout)
+			{ newSocket in
+				guard let newSocket = newSocket else { 
+					Log.error("failed to open IP connection")
+					self.state = .failedToConnect
+					self.delegate?.handleCompute(error: ComputeError.failedToConnect)
+					return
+				}
+				self.socket = newSocket
+				Log.info("compute worker opened socket")
+				self.state = .connected
+				self.delegate?.handleCompute(statusUpdate: .connected)
+				self.readNext()
+			}
+		} catch {
+			Log.error("failed to connect to compute engine")
+			delegate?.handleCompute(error: ComputeError.failedToConnect)
+		}
+	}
 	
+	// private func connectionOpened() {
+	// 	do {
+	// 		try send(data: compute.openConnection(wspaceId: workspace.id, sessionId: sessionId, dbhost: config.computeDbHost, dbuser: config.dbUser, dbname: config.dbName, dbpassword: config.dbPassword))
+	// 		state = .connected
+	// 		// only inform delegate when compute has replied to open message
+	// 	} catch {
+	// 		Log.error("Error opening compute connection: \(error)")
+	// 		delegate?.handleCompute(error: ComputeError.failedToConnect)
+	// 	}
+	// 	readNext()
+	// }
+
 	private func readNext() {
+		guard let socket = socket else { fatalError() }
 		socket.readBytesFully(count: 8, timeoutSeconds: -1) { bytes in
 			guard let bytes = bytes else { Log.error("readBytes got nil"); return }
 			var readError: ComputeError?
 			do {
 				let size = try self.verifyMagicHeader(bytes: bytes)
-				self.socket.readBytesFully(count: size, timeoutSeconds: -1) { (fullBytes) in
+				socket.readBytesFully(count: size, timeoutSeconds: -1) { (fullBytes) in
 					guard let fullBytes = fullBytes else { readError = .failedToReadMessage; return }
 					let data = Data(bytes: fullBytes)
 					self.delegate?.handleCompute(data: data)

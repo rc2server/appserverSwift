@@ -107,9 +107,10 @@ class ComputeCoder {
 	/// - Parameter dbhost: The hostname for the database server
 	/// - Parameter dbuser: The username to log into the database with
 	/// - Parameter dbname: The name of the database to connect to
+	/// - Parameter dbpassword: The password the compute server uses for the database
 	/// - Returns: data to send to compute server
-	func openConnection(wspaceId: Int, sessionId: Int, dbhost: String, dbuser: String, dbname: String) throws -> Data {
-		return try encoder.encode(OpenCommand(wspaceId: wspaceId, sessionRecId: sessionId, dbhost: dbhost, dbuser: dbuser, dbname: dbname))
+	func openConnection(wspaceId: Int, sessionId: Int, dbhost: String, dbuser: String, dbname: String, dbpassword: String?) throws -> Data {
+		return try encoder.encode(OpenCommand(wspaceId: wspaceId, sessionRecId: sessionId, dbhost: dbhost, dbuser: dbuser, dbname: dbname, dbpassword: dbpassword))
 	}
 	
 	// MARK: - response handling
@@ -284,6 +285,7 @@ class ComputeCoder {
 		let dbhost: String
 		let dbuser: String
 		let dbname: String
+		let dbpassword: String?
 	}
 	
 	private struct GenericCommand: Encodable {

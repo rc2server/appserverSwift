@@ -5,5 +5,8 @@ import XCTest
 XCTMain([
 	testCase(ModelHandlerTests.allTests),
     testCase(FileChangeMonitorTests.allTests),
-    testCase(VariableJsonTests.allTests)
+    testCase(VariableJsonTests.allTests),
+    testCase(ComputeCoderTests.allTests),
+    testCase(ComputeWorkerTests.allTests),
+    testCase(SessionTests.allTests),
 ])

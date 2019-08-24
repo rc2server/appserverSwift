@@ -36,7 +36,7 @@ class FileHandler: BaseHandler {
 			let file = try settings.dao.insertFile(name: filename, wspaceId: wspaceId, bytes: data)
 			let data = try settings.encode(file)
 			response.bodyBytes.removeAll()
-			response.bodyBytes.append(contentsOf: Array<UInt8>(data))
+			response.bodyBytes.append(contentsOf:(data))
 			response.completed(status: .created)
 		} catch {
 			Log.warn("failed to save file contents: \(error)")

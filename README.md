@@ -2,7 +2,7 @@
 
 <p align="center">
 
-<img alt="Swift 4.0" src="https://img.shields.io/badge/Swift-4.0-orange.svg?style=flat" style="max-width:100%;">
+<img alt="Swift 4.0" src="https://img.shields.io/badge/Swift-4.2-orange.svg?style=flat" style="max-width:100%;">
 
 <img alt="Platforms OS X | Linux" src="https://img.shields.io/badge/Platforms-OS%20X%20%7C%20Linux%20-lightgray.svg?style=flat" style="max-width:100%;">
 
@@ -32,3 +32,6 @@ start docker containers with:
 
 `docker run -d --name appdev_db --network rc2dev --network-alias dbserver -p 5432:5432 mlilback/appdevdb:0.1`
 
+## debug compile
+
+`swift build -Xswiftc -g`

@@ -60,6 +60,7 @@ open class AppServer {
 	private var fileHandler: FileHandler!
 	private var infoHandler: InfoHandler!
 	private var modelHandler: ModelHandler!
+	private var statusHandler: StatusHandler!
 
 	/// creates a server with the authentication filter installed
 	public init() {
@@ -76,6 +77,7 @@ open class AppServer {
 		defRoutes.append(contentsOf: fileHandler.routes())
 		defRoutes.append(contentsOf: infoHandler.routes())
 		defRoutes.append(contentsOf: modelHandler.routes())
+		defRoutes.append(contentsOf: statusHandler.routes())
 
 		defRoutes.append(Route(method: .get, uri: settings.config.urlPrefixToIgnore + "/ws/{wsId}") { request, response in
 			self.websocketHandler.handleRequest(request: request, response: response)
@@ -123,6 +125,7 @@ open class AppServer {
 			fileHandler = FileHandler(settings: settings)
 			infoHandler = InfoHandler(settings: settings)
 			modelHandler = ModelHandler(settings: settings)
+			statusHandler = StatusHandler(settings: settings)
 		} catch {
 			print("failed to connect to database \(error)")
 			exit(1)
@@ -158,7 +161,8 @@ open class AppServer {
 		// setup logging
 		let config = DefaultLogConfiguration(level: level)
 		let logger = Logger(config: config)
-		logger.append(handler: StdErrHandler(config: config, formatter: nil))
+		let formatter = TokenizedLogFormatter(config: config, formatString: "(%type) (%date) (%level) (%category), (%function) [(%filename):(%line)] (%message)", dateFormatter: nil)
+		logger.append(handler: StdErrHandler(config: config, formatter: formatter))
 		Log.enableLogging(logger)
 		Log.info("logging enabled (\(config.globalLevel))")
 	}
